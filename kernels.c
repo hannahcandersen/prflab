@@ -56,72 +56,12 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 char rotate_descr[] = "rotate: Current working version";
 void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
 {
-    register int i, j; // `register` keyword is a hint to the compiler that the variable will be heavily used
-
-    register int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
-
-    for (i = 0; i < dim; i++)
-        for (j = 0; j < dim; j++)
-            dst[RIDX(dim_minus_1 - j, i, dim)] = src[RIDX(i, j, dim)];
-}
-
-char my_rotate_descr[] = "my_rotate: Using accumulator array";
-void my_rotate(int dim, pixel *restrict src, pixel *restrict dst)
-{                      // note: same signature as naive_rotate
-    register int i, j; // `register` keyword is a hint to the compiler that the variable will be heavily used
-
-    register int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
-
-    pixel *restrict acc = malloc(dim * dim * sizeof(pixel)); // allocate memory for a accumulator array
-
-    for (i = 0; i < dim; i++)
-        for (j = 0; j < dim; j++)
-            acc[RIDX(dim_minus_1 - j, i, dim)] = src[RIDX(i, j, dim)]; // copy `src` to `acc` in rotated order
-
-    // Copy the content of acc into dst
-    memcpy(dst, acc, dim * dim * sizeof(pixel));
-
-    // Free the memory allocated for acc
-    free(acc);
-}
-
-char unrolling_rotate_descr[] = "rotate: Loop unrolling";
-void unrolling_rotate(int dim, pixel *src, pixel *dst)
-{
-    register int i, j;
-    register int dim_minus_1 = dim - 1;
-
-    for (i = 0; i < dim; i += 2)
-    { // Unrolling by 2
-        for (j = 0; j < dim; j += 4)
-        // Unrolling by 4
-        {
-            // Inlining RIDX macro because this can give overhead
-
-            // First row
-            dst[(dim_minus_1 - j) * dim + i] = src[i * dim + j];
-            dst[(dim_minus_1 - j - 1) * dim + i] = src[i * dim + j + 1];
-            dst[(dim_minus_1 - j - 2) * dim + i] = src[i * dim + j + 2];
-            dst[(dim_minus_1 - j - 3) * dim + i] = src[i * dim + j + 3];
-
-            // Second row
-            dst[(dim_minus_1 - j) * dim + i + 1] = src[(i + 1) * dim + j];
-            dst[(dim_minus_1 - j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
-            dst[(dim_minus_1 - j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
-            dst[(dim_minus_1 - j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
-        }
-    }
-}
-
-char unrolling_rotate2_descr[] = "rotate: Loop unrolling 2";
-void unrolling_rotate2(int dim, pixel *src, pixel *dst)
-{
     register int i, j;
     register int dim_minus_1 = dim - 1;
 
     for (i = 0; i < dim; i += 4)
     { // Unrolling by 4
-    
+
         for (j = 0; j < dim; j += 4)
         // Unrolling by 4
         {
@@ -165,9 +105,6 @@ void unrolling_rotate2(int dim, pixel *src, pixel *dst)
 void register_rotate_functions()
 {
     add_rotate_function(&rotate, rotate_descr);
-    add_rotate_function(&my_rotate, my_rotate_descr);                 // <-- the line we need to add
-    add_rotate_function(&unrolling_rotate, unrolling_rotate_descr);   // <-- the line we need to add
-    add_rotate_function(&unrolling_rotate2, unrolling_rotate2_descr); // <-- the line we need to add
     /* ... Register additional test functions here */
 }
 
