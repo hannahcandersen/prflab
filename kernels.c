@@ -146,6 +146,7 @@ void *rotate_thread(void *arg)
     register int i, j;
     register int dim_minus_1 = dim - 1;
 
+    // Same code as in rotate
     for (i = start_row; i < end_row; i += 4)
     { // Unrolling by 4
 
@@ -190,6 +191,14 @@ void *rotate_thread(void *arg)
 char rotate_t_descr[] = "rotate_t: Multithreaded version";
 void rotate_t(int dim, pixel *src, pixel *dst)
 {
+    // This method is only good for large input
+    // Check if input is small enough that it is better to call rotate
+    if (dim < 512)
+    {
+        rotate(dim, src, dst);
+        return;
+    }
+
     pthread_t threads[4];
     thread_args thread_data[4];
 
