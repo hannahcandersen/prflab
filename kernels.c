@@ -54,11 +54,11 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // row i -> column i 
 // column j -> row dim - 1 - j 
 char rotate_descr[] = "rotate: Current working version";
-void rotate(int dim, pixel *src, pixel *dst)
+void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
 {
     register int i, j; // `register` keyword is a hint to the compiler that the variable will be heavily used
 
-    int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
+    register int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
 
     for (i = 0; i < dim; i++)
         for (j = 0; j < dim; j++)
@@ -66,12 +66,12 @@ void rotate(int dim, pixel *src, pixel *dst)
 }
 
 char my_rotate_descr[] = "my_rotate: Using accumulator array";
-void my_rotate(int dim, pixel *src, pixel *dst){ // note: same signature as naive_rotate
+void my_rotate(int dim, pixel *restrict src, pixel *restrict dst){ // note: same signature as naive_rotate
     register int i, j;                           // `register` keyword is a hint to the compiler that the variable will be heavily used
 
-    int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
+    register int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
 
-    pixel *acc = malloc(dim * dim * sizeof(pixel)); // allocate memory for a accumulator array
+    pixel *restrict acc = malloc(dim * dim * sizeof(pixel)); // allocate memory for a accumulator array
 
     for (i = 0; i < dim; i++)
         for (j = 0; j < dim; j++)
@@ -84,6 +84,22 @@ void my_rotate(int dim, pixel *src, pixel *dst){ // note: same signature as naiv
     free(acc);
 }
 
+char unrolling_rotate_descr[] = "rotate: Loop unrolling";
+void unrollig_rotate(int dim, pixel *src, pixel *dst){ // restrict keyword: compiler can assume that `src` and `dst` do not overlap
+    register int i, j; // `register` keyword is a hint to the compiler that the variable will be heavily used
+
+    register int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
+
+    for (i = 0; i < dim; i++) {
+        for (j = 0; j < dim; j += 4) {
+            dst[RIDX(dim_minus_1 - j, i, dim)] = src[RIDX(i, j, dim)]; 
+            dst[RIDX(dim_minus_1 - j - 1, i, dim)] = src[RIDX(i, j + 1, dim)]; // `j + 1` is the next iteration of the loop
+            dst[RIDX(dim_minus_1 - j - 2, i, dim)] = src[RIDX(i, j + 2, dim)]; // `j + 2` is the next iteration of the loop
+            dst[RIDX(dim_minus_1 - j - 3, i, dim)] = src[RIDX(i, j + 3, dim)]; // `j + 3` is the next iteration of the loop
+        }
+    }
+}
+
 /*
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
@@ -93,6 +109,7 @@ void register_rotate_functions()
 {
     add_rotate_function(&rotate, rotate_descr);
     add_rotate_function(&my_rotate, my_rotate_descr); // <-- the line we need to add
+    add_rotate_function(&unrollig_rotate, unrolling_rotate_descr); // <-- the line we need to add
     /* ... Register additional test functions here */
 }
 
