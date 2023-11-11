@@ -146,7 +146,7 @@ void *rotate_thread(void *arg)
     register int i, j;
     register int dim_minus_1 = dim - 1;
 
-    for (i = 0; i < dim; i += 4)
+    for (i = start_row; i < end_row; i += 4)
     { // Unrolling by 4
 
         for (j = 0; j < dim; j += 4)
