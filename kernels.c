@@ -56,10 +56,10 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // column j -> row dim - 1 - j
 char rotate_descr[] = "rotate: Current working version";
 // dim is number of columns (N)
-void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
+void rotate(int dim, pixel *src, pixel *dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
 {
-    register int i, j;
-    register int dim_minus_1 = dim - 1;
+    int i, j;
+    int dim_minus_1 = dim - 1;
 
     for (i = 0; i < dim; i += 4)
     { // Unrolling by 4
