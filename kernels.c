@@ -122,7 +122,7 @@ void register_rotate_functions()
  * IMPORTANT: This is the version you will be graded on
  */
 
-// Struct for thread args
+// Struct for thread arguments
 typedef struct
 {
     int dim;
@@ -132,44 +132,38 @@ typedef struct
     int end_row;
 } thread_args;
 
-// Worker function for rotate_t
-void *rotate_t_worker(void *arg)
+// Worker thread function
+void *rotate_thread(void *arg)
 {
-    thread_args *args = (thread_args *)arg; // Cast void pointer to thread_args pointer
+    thread_args *args = (thread_args *)arg;
 
-    // Call rotate on the rows assigned to this thread
+    // Call the existing rotate function on the specified range of rows
     rotate(args->dim, args->src + args->start_row * args->dim, args->dst + args->start_row * args->dim);
 
     pthread_exit(NULL);
 }
 
-
-// Four threads because four cores
-// Divide the image into four quadrants and call `rotate` on each quadrant
-char rotate_t_descr[] = "rotate_t: Current working version";
+// Main function
+// 4 threads because 4 cores
+char rotate_t_descr[] = "rotate_t: Multithreaded version";
 void rotate_t(int dim, pixel *src, pixel *dst)
 {
-    // Divide the image into four quadrants
-    int rows_per_thread = dim / 4;
-
-    // Create four threads  and call `rotate` on each quadrant
     pthread_t threads[4];
-    thread_args thread_data[4]; // Array of structs for thread args
+    thread_args thread_data[4];
+
+    int rows_per_thread = dim / 4;
 
     for (int t = 0; t < 4; t++)
     {
-        // Set arguments
         thread_data[t].dim = dim;
         thread_data[t].src = src;
         thread_data[t].dst = dst;
-        thread_data[t].start_row = t * rows_per_thread;  // start row
-        thread_data[t].end_row = (t + 1) * rows_per_thread; // end row
+        thread_data[t].start_row = t * rows_per_thread;
+        thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread;
 
-        // Create thread
-        pthread_create(&threads[t], NULL, rotate_t_worker, (void *)&thread_data[t]);
+        pthread_create(&threads[t], NULL, rotate_thread, (void *)&thread_data[t]);
     }
 
-    // Join the threads to avoid race conditions
     for (int t = 0; t < 4; t++)
     {
         pthread_join(threads[t], NULL);
