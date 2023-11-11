@@ -55,6 +55,7 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // row i -> column i
 // column j -> row dim - 1 - j
 char rotate_descr[] = "rotate: Current working version";
+// dim is number of columns (N)
 void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
 {
     register int i, j;
@@ -195,8 +196,8 @@ void rotate_t(int dim, pixel *src, pixel *dst)
     // Check if input is small enough that it is better to call rotate
     if (dim < 512)
     {
-        rotate(dim, src, dst);
-        return;
+        rotate(dim, src, dst); // Call rotate instead
+        return; 
     }
 
     pthread_t threads[4];
