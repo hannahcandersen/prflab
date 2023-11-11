@@ -55,17 +55,17 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // row i -> column i
 // column j -> row dim - 1 - j
 char rotate_descr[] = "rotate: Current working version";
-// dim is number of columns (N)
-void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
+
+void rotate(int dim, pixel *restrict src, pixel *restrict dst)
 {
     register int i, j;
     register int dim_minus_1 = dim - 1;
 
-    for (i = 0; i < dim; i += 4)
-    { // Unrolling by 4
+    for (i = 0; i < dim; i += 8)
+    { // Unrolling by 8
 
-        for (j = 0; j < dim; j += 4)
-        // Unrolling by 4
+        for (j = 0; j < dim; j += 8)
+        // Unrolling by 8
         {
             // Inlining RIDX macro because this can give overhead
 
@@ -77,28 +77,84 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
             dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
             dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
             dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i] = src[i * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i] = src[i * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i] = src[i * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i] = src[i * dim + j + 7];
 
             // Second row
             dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
             dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
             dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
             dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 1] = src[(i + 1) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 1] = src[(i + 1) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 1] = src[(i + 1) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 1] = src[(i + 1) * dim + j + 7];
 
             // Third row
             dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
             dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
             dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
             dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 2] = src[(i + 2) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 2] = src[(i + 2) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 2] = src[(i + 2) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 2] = src[(i + 2) * dim + j + 7];
 
             // Fourth row
             dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
             dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
             dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
             dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 3] = src[(i + 3) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 3] = src[(i + 3) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 3] = src[(i + 3) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 3] = src[(i + 3) * dim + j + 7];
+
+            // Fifth row
+            dst[(dim_minus_1_minus_j)*dim + i + 4] = src[(i + 4) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 4] = src[(i + 4) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 4] = src[(i + 4) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 4] = src[(i + 4) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 4] = src[(i + 4) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 4] = src[(i + 4) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 4] = src[(i + 4) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 4] = src[(i + 4) * dim + j + 7];
+
+            // Sixth row
+            dst[(dim_minus_1_minus_j)*dim + i + 5] = src[(i + 5) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 5] = src[(i + 5) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 5] = src[(i + 5) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 5] = src[(i + 5) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 5] = src[(i + 5) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 5] = src[(i + 5) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 5] = src[(i + 5) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 5] = src[(i + 5) * dim + j + 7];
+
+            // Seventh row
+            dst[(dim_minus_1_minus_j)*dim + i + 6] = src[(i + 6) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 6] = src[(i + 6) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 6] = src[(i + 6) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 6] = src[(i + 6) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 6] = src[(i + 6) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 6] = src[(i + 6) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 6] = src[(i + 6) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 6] = src[(i + 6) * dim + j + 7];
+
+            // Eighth row
+            dst[(dim_minus_1_minus_j)*dim + i + 7] = src[(i + 7) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 7] = src[(i + 7) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 7] = src[(i + 7) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 7] = src[(i + 7) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 4) * dim + i + 7] = src[(i + 7) * dim + j + 4];
+            dst[(dim_minus_1_minus_j - 5) * dim + i + 7] = src[(i + 7) * dim + j + 5];
+            dst[(dim_minus_1_minus_j - 6) * dim + i + 7] = src[(i + 7) * dim + j + 6];
+            dst[(dim_minus_1_minus_j - 7) * dim + i + 7] = src[(i + 7) * dim + j + 7];
+            
         }
     }
 }
-
 /*
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
