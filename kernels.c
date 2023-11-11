@@ -194,7 +194,7 @@ void rotate_t(int dim, pixel *src, pixel *dst)
 {
     // This method is only good for large input
     // Check if input is small enough that it is better to call rotate
-    if (dim < 256)
+    if (dim < 512)
     {
         rotate(dim, src, dst); // Call rotate instead
         return; 
