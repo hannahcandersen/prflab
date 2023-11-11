@@ -83,25 +83,25 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
             register int i_plus_three_dim_j = (i + 3) * dim + j;
 
             // First row
-            dst[(dim_minus_1_minus_j) * dimi] = src[i_dim_j];
+            dst[(dim_minus_1_minus_j)*dimi] = src[i_dim_j];
             dst[(dim_minus_1_minus_j - 1) * dimi] = src[i_dim_j + 1];
             dst[(dim_minus_1_minus_j - 2) * dimi] = src[i_dim_j + 2];
             dst[(dim_minus_1_minus_j - 3) * dimi] = src[i_dim_j + 3];
 
             // Second row
-            dst[(dim_minus_1_minus_j) * dimi_plus_one] = src[i_plus_one_dim_j];
+            dst[(dim_minus_1_minus_j)*dimi_plus_one] = src[i_plus_one_dim_j];
             dst[(dim_minus_1_minus_j - 1) * dimi_plus_one] = src[i_plus_one_dim_j + 1];
             dst[(dim_minus_1_minus_j - 2) * dimi_plus_one] = src[i_plus_one_dim_j + 2];
             dst[(dim_minus_1_minus_j - 3) * dimi_plus_one] = src[i_plus_one_dim_j + 3];
 
             // Third row
-            dst[(dim_minus_1_minus_j)* dimi_plus_two] = src[i_plus_two_dim_j];
+            dst[(dim_minus_1_minus_j)*dimi_plus_two] = src[i_plus_two_dim_j];
             dst[(dim_minus_1_minus_j - 1) * dimi_plus_two] = src[i_plus_two_dim_j + 1];
             dst[(dim_minus_1_minus_j - 2) * dimi_plus_two] = src[i_plus_two_dim_j + 2];
             dst[(dim_minus_1_minus_j - 3) * dimi_plus_two] = src[i_plus_two_dim_j + 3];
 
             // Fourth row
-            dst[(dim_minus_1_minus_j) * dimi_plus_three] = src[i_plus_three_dim_j];
+            dst[(dim_minus_1_minus_j)*dimi_plus_three] = src[i_plus_three_dim_j];
             dst[(dim_minus_1_minus_j - 1) * dimi_plus_three] = src[i_plus_three_dim_j + 1];
             dst[(dim_minus_1_minus_j - 2) * dimi_plus_three] = src[i_plus_three_dim_j + 2];
             dst[(dim_minus_1_minus_j - 3) * dimi_plus_three] = src[i_plus_three_dim_j + 3];
