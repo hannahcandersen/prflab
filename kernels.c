@@ -71,31 +71,30 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
 
             // Precompute indices
             int dim_minus_1_minus_j = dim_minus_1 - j;
-            int dimj = dim + j; 
 
             // First row
-            dst[(dim_minus_1_minus_j)*dim + i] = src[i * dimj];
-            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dimj + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dimj + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dimj + 3];
+            dst[(dim_minus_1_minus_j)*dim + i] = src[i * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
 
             // Second row
-            dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dimj];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dimj + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dimj + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dimj + 3];
+            dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
 
             // Third row
-            dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dimj];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dimj + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dimj + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dimj + 3];
+            dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
 
             // Fourth row
-            dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dimj];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dimj + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dimj + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dimj + 3];
+            dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
         }
     }
 }
