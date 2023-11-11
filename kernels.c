@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> 
 #include "defs.h"
 #include "smooth.h" // helper functions for naive_smooth
 #include "blend.h"  // helper functions for naive_blend
@@ -14,9 +15,9 @@
  * Please fill in the following struct
  */
 student_t student = {
-    "bovik",             /* ITU alias */
-    "Harry Q. Bovik",    /* Full name */
-    "bovik@nowhere.edu", /* Email address */
+    "hcan",             /* ITU alias */
+    "Hannah C. Andersen",    /* Full name */
+    "hcan@itu.dk", /* Email address */
 };
 
 /******************************************************************************
@@ -35,12 +36,13 @@ student_t student = {
     1 5 9 D     8 9 A B
     0 4 8 C     C D E F
  */
+
 char naive_rotate_descr[] = "naive_rotate: Naive baseline implementation";
 void naive_rotate(int dim, pixel *src, pixel *dst) 
 {
     int i, j;
 
-    for (i = 0; i < dim; i++)
+    for (i = 0; i < dim; i++) 
 	for (j = 0; j < dim; j++)
 	    dst[RIDX(dim-1-j, i, dim)] = src[RIDX(i, j, dim)];
 }
@@ -49,10 +51,37 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
  * rotate - Your current working version of rotate
  * IMPORTANT: This is the version you will be graded on
  */
+// row i -> column i 
+// column j -> row dim - 1 - j 
 char rotate_descr[] = "rotate: Current working version";
 void rotate(int dim, pixel *src, pixel *dst)
 {
-    naive_rotate(dim, src, dst);
+    register int i, j; // `register` keyword is a hint to the compiler that the variable will be heavily used
+
+    int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
+
+    for (i = 0; i < dim; i++)
+        for (j = 0; j < dim; j++)
+            dst[RIDX(dim_minus_1 - j, i, dim)] = src[RIDX(i, j, dim)];
+}
+
+char my_rotate_descr[] = "my_rotate: Using accumulator array";
+void my_rotate(int dim, pixel *src, pixel *dst){ // note: same signature as naive_rotate
+    register int i, j;                           // `register` keyword is a hint to the compiler that the variable will be heavily used
+
+    int dim_minus_1 = dim - 1; // `dim - 1` is used a lot, so we precompute it
+
+    pixel *acc = malloc(dim * dim * sizeof(pixel)); // allocate memory for a accumulator array
+
+    for (i = 0; i < dim; i++)
+        for (j = 0; j < dim; j++)
+            acc[RIDX(dim_minus_1 - j, i, dim)] = src[RIDX(i, j, dim)]; // copy `src` to `acc` in rotated order
+
+    // Copy the content of acc into dst
+    memcpy(dst, acc, dim * dim * sizeof(pixel));
+
+    // Free the memory allocated for acc
+    free(acc);
 }
 
 /*
@@ -63,6 +92,7 @@ void rotate(int dim, pixel *src, pixel *dst)
 void register_rotate_functions() 
 {
     add_rotate_function(&rotate, rotate_descr);
+    add_rotate_function(&my_rotate, my_rotate_descr); // <-- the line we need to add
     /* ... Register additional test functions here */
 }
 
