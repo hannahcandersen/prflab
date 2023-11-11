@@ -182,6 +182,7 @@ void *rotate_thread(void *arg)
             dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
         }
     }
+    return NULL; // return value is not used
 }
 
 // Main function
