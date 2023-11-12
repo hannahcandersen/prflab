@@ -101,6 +101,49 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
     }
 }
 
+char rotate_v_descr[] = "rotate_v: Swith loops";
+void rotate_v(int dim, pixel *restrict src, pixel *restrict dst)
+{
+    register int i, j;
+    register int dim_minus_1 = dim - 1;
+
+    for (j = 0; j < dim; j += 4)
+    { // Unrolling by 4
+
+        for (i = 0; i < dim; i += 4)
+        { // Unrolling by 4
+
+            // Inlining RIDX macro because this can give overhead
+            // Precompute indices
+            int dim_minus_1_minus_j = dim_minus_1 - j;
+
+            // First row
+            dst[(dim_minus_1_minus_j)*dim + i] = src[i * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
+
+            // Second row
+            dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
+
+            // Third row
+            dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
+
+            // Fourth row
+            dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
+        }
+    }
+}
+
 /*
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
@@ -109,6 +152,7 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
 void register_rotate_functions()
 {
     add_rotate_function(&rotate, rotate_descr);
+    add_rotate_function(&rotate_v, rotate_v_descr);
     /* ... Register additional test functions here */
 }
 
