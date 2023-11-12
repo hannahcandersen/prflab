@@ -11,14 +11,16 @@
 #include "defs.h"
 #include "smooth.h" // helper functions for naive_smooth
 #include "blend.h"  // helper functions for naive_blend
+#include <limits.h>
 
-    /*
-     * Please fill in the following struct
-     */
-    student_t student = {
-        "hcan",               /* ITU alias */
-        "Hannah C. Andersen", /* Full name */
-        "hcan@itu.dk",        /* Email address */
+
+/*
+ * Please fill in the following struct
+ */
+student_t student = {
+    "hcan",               /* ITU alias */
+    "Hannah C. Andersen", /* Full name */
+    "hcan@itu.dk",        /* Email address */
 };
 
 /******************************************************************************
@@ -58,7 +60,7 @@ char rotate_descr[] = "rotate: Current working version";
 // dim is number of columns (N)
 void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
 {
-    register int i, j;
+    register int i, j; // register keyword: save variable in register instead of memory
     register int dim_minus_1 = dim - 1;
 
     for (i = 0; i < dim; i += 4)
@@ -251,10 +253,26 @@ void naive_blend(int dim, pixel *src, pixel *dst) // reads global variable `pixe
             blend_pixel(&src[RIDX(i, j, dim)], &dst[RIDX(i, j, dim)], &bgc); // `blend_pixel` defined in blend.c
 }
 
-char blend_descr[] = "blend: Current working version";
-void blend(int dim, pixel *src, pixel *dst)
+char blend_descr[] = "blend: Current working version"; // IMPORTANT: The version you will be graded on
+void blend(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
 {
-    naive_blend(dim, src, dst);
+    register int i, j; // tell compiler to save variable in register
+
+    for (i = 0; i < dim; i++){
+        for (j = 0; j < dim; j++){
+            // Move code from blend_pixel into this function to avoid function call overhead
+            pixel* s = &src[RIDX(i, j, dim)]; 
+            pixel* d = &dst[RIDX(i, j, dim)];
+            pixel* b = &bgc;
+
+            float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
+
+            d->red = (a * s->red) + ((1 - a) * b->red); // blend red colours
+            d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
+            d->blue = (a * s->blue) + ((1 - a) * b->blue); // blend blue colours
+            d->alpha = USHRT_MAX; // opaque
+        }
+    }
 }
 
 /*
