@@ -100,6 +100,35 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
         }
     }
 }
+
+char rotate_new_descr[] = "rotate: Unrolling and Single Loop";
+
+void rotate_new(int dim, pixel *restrict src, pixel *restrict dst)
+{
+    register int i;
+    register int dim_minus_1 = dim - 1;
+
+    // Only use one loop instead of two because the picture is represented as a 1D array
+    // Unrolling by 4 for both rows and columns
+    for (i = 0; i < dim * dim; i += 4)
+    {
+        int j = i / dim; // Column index (j) is equal to i / dim because of the way the picture is represented as a 1D array
+        int dim_minus_1_minus_j = dim_minus_1 - (i % dim);
+
+        // First row
+        dst[dim_minus_1_minus_j * dim + j] = src[i];
+
+        // Second row
+        dst[dim_minus_1_minus_j * dim + j + 1] = src[i + 1];
+
+        // Third row
+        dst[dim_minus_1_minus_j * dim + j + 2] = src[i + 2];
+
+        // Fourth row
+        dst[dim_minus_1_minus_j * dim + j + 3] = src[i + 3];
+    }
+}
+
 /*
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
@@ -108,6 +137,7 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
 void register_rotate_functions()
 {
     add_rotate_function(&rotate, rotate_descr);
+    add_rotate_function(&rotate_new, rotate_new_descr);
     /* ... Register additional test functions here */
 }
 
@@ -254,32 +284,10 @@ void naive_blend(int dim, pixel *src, pixel *dst) // reads global variable `pixe
 }
 
 char blend_descr[] = "blend: Current working version"; // IMPORTANT: The version you will be graded on
-void blend(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
+void blend(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler that it can assume that `src` and `dst` do not overlap in memory
 {
-    register int i, j; // tell compiler to save variable in register
+    register int i; // Tell compiler to save variable in register
 
-    for (i = 0; i < dim; i++){
-        for (j = 0; j < dim; j++){
-            // Move code from blend_pixel into this function to avoid function call overhead
-            pixel* s = &src[RIDX(i, j, dim)]; 
-            pixel* d = &dst[RIDX(i, j, dim)];
-            pixel* b = &bgc;
-
-            float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
-
-            d->red = (a * s->red) + ((1 - a) * b->red); // blend red colours
-            d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
-            d->blue = (a * s->blue) + ((1 - a) * b->blue); // blend blue colours
-            d->alpha = USHRT_MAX; // opaque
-        }
-    }
-}
-
-char blend_no_loop_descr[] = "blend: No Inner Loop";        
-void blend_no_loop(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
-{
-    register int i; // tell compiler to save variable in register
-    
     // Move code from blend_pixel into this function to avoid function call overhead
     // Only use one loop instead of two because the picture is represented as a 1D array
     for (i = 0; i < dim * dim; i++)
@@ -305,8 +313,6 @@ void blend_no_loop(int dim, pixel *restrict src, pixel *restrict dst) // restric
 void register_blend_functions()
 {
     add_blend_function(&blend, blend_descr);
-    add_blend_function(&blend_no_loop, blend_no_loop_descr);
-
     /* ... Register additional test functions here */
 }
 
