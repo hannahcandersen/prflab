@@ -275,51 +275,25 @@ void blend(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywor
     }
 }
 
-char blend_without_register_descr[] = "blend: Current working version";        // IMPORTANT: The version you will be graded on
-void blend_without_register(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
+char blend_no_loop_descr[] = "blend: No Inner Loop";        
+void blend_no_loop(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
 {
-    int i, j; // tell compiler to save variable in register
-
-    for (i = 0; i < dim; i++)
+    register int i; // tell compiler to save variable in register
+    
+    // Move code from blend_pixel into this function to avoid function call overhead
+    // Only use one loop instead of two because the picture is represented as a 1D array
+    for (i = 0; i < dim * dim; i++)
     {
-        for (j = 0; j < dim; j++)
-        {
-            // Move code from blend_pixel into this function to avoid function call overhead
-            pixel *s = &src[RIDX(i, j, dim)];
-            pixel *d = &dst[RIDX(i, j, dim)];
-            pixel *b = &bgc;
+        pixel *s = &src[i];
+        pixel *d = &dst[i];
+        pixel *b = &bgc;
 
-            float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
+        float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
 
-            d->red = (a * s->red) + ((1 - a) * b->red);       // blend red colours
-            d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
-            d->blue = (a * s->blue) + ((1 - a) * b->blue);    // blend blue colours
-            d->alpha = USHRT_MAX;                             // opaque
-        }
-    }
-}
-
-char blend_without_restrict_descr[] = "blend: Current working version";        // IMPORTANT: The version you will be graded on
-void blend_without_restrict(int dim, pixel* src, pixel* dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap in memory
-{
-    register int i, j; // tell compiler to save variable in register
-
-    for (i = 0; i < dim; i++)
-    {
-        for (j = 0; j < dim; j++)
-        {
-            // Move code from blend_pixel into this function to avoid function call overhead
-            pixel *s = &src[RIDX(i, j, dim)];
-            pixel *d = &dst[RIDX(i, j, dim)];
-            pixel *b = &bgc;
-
-            float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
-
-            d->red = (a * s->red) + ((1 - a) * b->red);       // blend red colours
-            d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
-            d->blue = (a * s->blue) + ((1 - a) * b->blue);    // blend blue colours
-            d->alpha = USHRT_MAX;                             // opaque
-        }
+        d->red = (a * s->red) + ((1 - a) * b->red);       // access destination pictures red property and blend source and background red colours
+        d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
+        d->blue = (a * s->blue) + ((1 - a) * b->blue);    // blend blue colours
+        d->alpha = USHRT_MAX;                             // opaque
     }
 }
 
@@ -331,8 +305,8 @@ void blend_without_restrict(int dim, pixel* src, pixel* dst) // restrict keyword
 void register_blend_functions()
 {
     add_blend_function(&blend, blend_descr);
-    add_blend_function(&blend_without_register, blend_without_register_descr);
-    add_blend_function(&blend_without_restrict, blend_without_restrict_descr);
+    add_blend_function(&blend_no_loop, blend_no_loop_descr);
+
     /* ... Register additional test functions here */
 }
 
