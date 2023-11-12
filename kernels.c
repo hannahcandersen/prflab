@@ -101,34 +101,6 @@ void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keywo
     }
 }
 
-char rotate_new_descr[] = "rotate: Unrolling and Single Loop";
-
-void rotate_new(int dim, pixel *restrict src, pixel *restrict dst)
-{
-    register int i;
-    register int dim_minus_1 = dim - 1;
-
-    // Only use one loop instead of two because the picture is represented as a 1D array
-    // Unrolling by 4 for both rows and columns
-    for (i = 0; i < dim * dim; i += 4)
-    {
-        int j = i / dim; // Column index (j) is equal to i / dim because of the way the picture is represented as a 1D array
-        int dim_minus_1_minus_j = dim_minus_1 - (i % dim);
-
-        // First row
-        dst[dim_minus_1_minus_j * dim + j] = src[i];
-
-        // Second row
-        dst[dim_minus_1_minus_j * dim + j + 1] = src[i + 1];
-
-        // Third row
-        dst[dim_minus_1_minus_j * dim + j + 2] = src[i + 2];
-
-        // Fourth row
-        dst[dim_minus_1_minus_j * dim + j + 3] = src[i + 3];
-    }
-}
-
 /*
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
@@ -137,7 +109,6 @@ void rotate_new(int dim, pixel *restrict src, pixel *restrict dst)
 void register_rotate_functions()
 {
     add_rotate_function(&rotate, rotate_descr);
-    add_rotate_function(&rotate_new, rotate_new_descr);
     /* ... Register additional test functions here */
 }
 
