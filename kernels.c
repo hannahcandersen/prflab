@@ -340,23 +340,35 @@ void blend_v(int dim, pixel *src, pixel *dst){
     // Make a vector with background color (two times using four floats for each)
     __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
 
+    // Make a vector of 8 ones to be used for calculating (1 - alpha)
+    __m256 ones = _mm256_set1_ps(1.0);
+
+    // Make a vector of 8 USHRT_MAX to be used for calculating alpha / USHRT_MAX
+    __m256 ushrt_maxes = _mm256_set1_ps(USHRT_MAX);
+
+    // Pixels in a linear array, so we can loop over the array
     // Loop unrolling of two because we handle two pixels at a time
-    for (register int i = 0; i < dim * dim; i += 2)
-    {
-        // Make an array with two pixels - with each short cast to float
-        float pix2[8] = {(src[i].red), (src[i].green), (src[i].blue), (src[i+1].alpha), (src[i+1].red), (src[i+1].green), (src[i+1].blue), (src[i].alpha)};
+    for (register int i = 0; i < dim * dim; i += 2){
+
+        // Make an array with the next two pixels - with each short cast to float
+        float pix2[8] = {(src[i].red), (src[i].green), (src[i].blue), (src[i].alpha), (src[i+1].red), (src[i+1].green), (src[i+1].blue), (src[i+1].alpha)};
 
         // Load pixels into a vector
         __m256 pixv = _mm256_load_ps(pix2);
 
+        // FROM DOWN HERE DO I NOT KNOW IF WORKS
         // Compute a_ratio for each pixel (α = S.alpha / USHRT_MAX)
+        __m256 a_ratios = _mm256_div_ps(pixv, ushrt_maxes); // Dont know if this works
 
         // Compute (1 − α) * B.c
+        __m256 one_minus_alpha = _mm256_sub_ps(ones, a_ratios);
+        __m256 b_component = _mm256_mul_ps(one_minus_alpha, bgv);
 
         // Compute αS.c + ((1 − α) * B.c) for each pixel
+        __m256 result = _mm256_add_ps(_mm256_mul_ps(a_ratios, pixv), b_component);
 
         // Store result back into dst
-
+        _mm256_storeu_ps(&dst[i].red, result);
     }
 
 }
