@@ -12,7 +12,7 @@
 #include "smooth.h" // helper functions for naive_smooth
 #include "blend.h"  // helper functions for naive_blend
 #include <limits.h>
-
+#include <immintrin.h>
 
 /*
  * Please fill in the following struct
