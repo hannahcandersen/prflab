@@ -276,6 +276,57 @@ void blend(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler t
     }
 }
 
+char blend_unroll_descr[] = "blend: Blend with loop unrolling";        // IMPORTANT: The version you will be graded on
+void blend_unroll(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler that it can assume that `src` and `dst` do not overlap in memory
+{
+    register int i; // Tell compiler to save variable in register
+
+    // Move code from blend_pixel into this function to avoid function call overhead
+    // Only use one loop instead of two because the picture is represented as a 1D array
+    for (i = 0; i < dim * dim; i += 4)
+    {
+        pixel *s1 = &src[i];
+        pixel *d1 = &dst[i];
+        pixel *b1 = &bgc;
+        float a1 = ((float)(s1->alpha)) / USHRT_MAX;
+
+        pixel *s2 = &src[i + 1];
+        pixel *d2 = &dst[i + 1];
+        pixel *b2 = &bgc;
+        float a2 = ((float)(s2->alpha)) / USHRT_MAX;
+
+        pixel *s3 = &src[i + 2];
+        pixel *d3 = &dst[i + 2];
+        pixel *b3 = &bgc;
+        float a3 = ((float)(s3->alpha)) / USHRT_MAX;
+
+        pixel *s4 = &src[i + 3];
+        pixel *d4 = &dst[i + 3];
+        pixel *b4 = &bgc;
+        float a4 = ((float)(s4->alpha)) / USHRT_MAX;
+
+        d1->red = (a1 * s1->red) + ((1 - a1) * b1->red);
+        d1->green = (a1 * s1->green) + ((1 - a1) * b1->green);
+        d1->blue = (a1 * s1->blue) + ((1 - a1) * b1->blue);
+        d1->alpha = USHRT_MAX;
+
+        d2->red = (a2 * s2->red) + ((1 - a2) * b2->red);
+        d2->green = (a2 * s2->green) + ((1 - a2) * b2->green);
+        d2->blue = (a2 * s2->blue) + ((1 - a2) * b2->blue);
+        d2->alpha = USHRT_MAX;
+
+        d3->red = (a3 * s3->red) + ((1 - a3) * b3->red);
+        d3->green = (a3 * s3->green) + ((1 - a3) * b3->green);
+        d3->blue = (a3 * s3->blue) + ((1 - a3) * b3->blue);
+        d3->alpha = USHRT_MAX;
+
+        d4->red = (a4 * s4->red) + ((1 - a4) * b4->red);
+        d4->green = (a4 * s4->green) + ((1 - a4) * b4->green);
+        d4->blue = (a4 * s4->blue) + ((1 - a4) * b4->blue);
+        d4->alpha = USHRT_MAX;
+    }
+}
+
 /*
  * register_blend_functions - Register all of your different versions
  *     of the blend kernel with the driver by calling the
@@ -284,6 +335,7 @@ void blend(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler t
 void register_blend_functions()
 {
     add_blend_function(&blend, blend_descr);
+    add_blend_function(&blend_unroll, blend_unroll_descr);
     /* ... Register additional test functions here */
 }
 
@@ -294,11 +346,58 @@ void register_blend_functions()
 // Your different versions of the blend_v kernel go here
 // (i.e. with vectorization, aka. SIMD).
 
+// 256 bit vectors 
+// One pixel = 8 bytes / 64 bits
+// One pixel contains 4 unsigned short values (16 bits each)
+// I want to cast the shorts to floats
+// Therefore, 2 pixels in one vector, 8 floats in one vector
+
 char blend_v_descr[] = "blend_v: Current working version";
-void blend_v(int dim, pixel *src, pixel *dst)
-{
-    naive_blend(dim, src, dst);
+void blend_v(int dim, pixel *src, pixel *dst){
+    // Make a vector with background color (two times using four floats for each)
+    __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
+
+    // Loop unrolling of two because we handle two pixels at a time
+    for (register int i = 0; i < dim * dim; i += 2)
+    {
+        // Make an array with two pixels - with each short cast to float
+        float pix2[8] = {(src[i].red), (src[i].green), (src[i].blue), (src[i+1].alpha), (src[i+1].red), (src[i+1].green), (src[i+1].blue), (src[i].alpha)};
+
+        // Load pixels into a vector
+        __m256 pixv = _mm256_load_ps(pix2);
+
+        // Blend
+
+
+
+        // Store result back into dst
+
+    }
+
 }
+
+/*
+        // Perform blend - unrolling by 4 because AVX2 vectors are 256 bits = 4 pixels
+        for (register int i = 0; i < dim * dim; i += 4)
+        {
+            // Load 4 pixels (64 bits each) from src into a AVX2 vector
+            __m256i s = _mm256_load_si256((__m256i *)src);
+
+            // Convert (short) values to floats and store in AVX2 vectors
+            __m256 a = _mm256_cvtepi32_ps(_mm256_and_si256(s, _mm256_set1_epi32(0xFFFF)));       // Extracts the lower 16 bits (alpha component) of each 32-bit integer element in s. Converts the 16-bit integer values to single-precision floating-point values.
+            __m256 r = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 16) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 16 bits to get the red component. Converts to floats.
+            __m256 g = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 32) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 32 bits to get the green component. Converts to floats.
+            __m256 b = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 48) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 48 bits to get the blue component. Converts to floats.
+
+            // Load background color into an AVX2 vector 4 times with short converted to floats
+
+            // Perform blend with background colour
+
+            // Store result back into dst
+            _mm256_store_si256((__m256i *)dst, s);
+        }
+    }
+*/
 
 /*
  * register_blend_v_functions - Register all of your different versions
