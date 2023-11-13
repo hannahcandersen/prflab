@@ -349,38 +349,17 @@ void blend_v(int dim, pixel *src, pixel *dst){
         // Load pixels into a vector
         __m256 pixv = _mm256_load_ps(pix2);
 
-        // Blend
+        // Compute a_ratio for each pixel (α = S.alpha / USHRT_MAX)
 
+        // Compute (1 − α) * B.c
 
+        // Compute αS.c + ((1 − α) * B.c) for each pixel
 
         // Store result back into dst
 
     }
 
 }
-
-/*
-        // Perform blend - unrolling by 4 because AVX2 vectors are 256 bits = 4 pixels
-        for (register int i = 0; i < dim * dim; i += 4)
-        {
-            // Load 4 pixels (64 bits each) from src into a AVX2 vector
-            __m256i s = _mm256_load_si256((__m256i *)src);
-
-            // Convert (short) values to floats and store in AVX2 vectors
-            __m256 a = _mm256_cvtepi32_ps(_mm256_and_si256(s, _mm256_set1_epi32(0xFFFF)));       // Extracts the lower 16 bits (alpha component) of each 32-bit integer element in s. Converts the 16-bit integer values to single-precision floating-point values.
-            __m256 r = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 16) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 16 bits to get the red component. Converts to floats.
-            __m256 g = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 32) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 32 bits to get the green component. Converts to floats.
-            __m256 b = _mm256_cvtepi32_ps(_mm256_srli_epi32(s, 48) & _mm256_set1_epi32(0xFFFF)); // Shifts each 32-bit integer element in s right by 48 bits to get the blue component. Converts to floats.
-
-            // Load background color into an AVX2 vector 4 times with short converted to floats
-
-            // Perform blend with background colour
-
-            // Store result back into dst
-            _mm256_store_si256((__m256i *)dst, s);
-        }
-    }
-*/
 
 /*
  * register_blend_v_functions - Register all of your different versions
