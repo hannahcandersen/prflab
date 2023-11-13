@@ -261,54 +261,38 @@ void blend(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler t
 
     // Move code from blend_pixel into this function to avoid function call overhead
     // Only use one loop instead of two because the picture is represented as a 1D array
-    for (i = 0; i < dim * dim; i++)
-    {
-        pixel *s = &src[i];
-        pixel *d = &dst[i];
-        pixel *b = &bgc;
-
-        float a = ((float)(s->alpha)) / USHRT_MAX; // alpha value
-
-        d->red = (a * s->red) + ((1 - a) * b->red);       // access destination pictures red property and blend source and background red colours
-        d->green = (a * s->green) + ((1 - a) * b->green); // blend green colours
-        d->blue = (a * s->blue) + ((1 - a) * b->blue);    // blend blue colours
-        d->alpha = USHRT_MAX;                             // opaque
-    }
-}
-
-char blend_unroll_descr[] = "blend: Blend with loop unrolling";        // IMPORTANT: The version you will be graded on
-void blend_unroll(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler that it can assume that `src` and `dst` do not overlap in memory
-{
-    register int i; // Tell compiler to save variable in register
-
-    // Move code from blend_pixel into this function to avoid function call overhead
-    // Only use one loop instead of two because the picture is represented as a 1D array
+    // Use loop unrolling to handle four pixels at a time
     for (i = 0; i < dim * dim; i += 4)
     {
+        // First pixel
         pixel *s1 = &src[i];
         pixel *d1 = &dst[i];
         pixel *b1 = &bgc;
-        float a1 = ((float)(s1->alpha)) / USHRT_MAX;
+        float a1 = ((float)(s1->alpha)) / USHRT_MAX; // Alpha value
 
+        // Second pixel
         pixel *s2 = &src[i + 1];
         pixel *d2 = &dst[i + 1];
         pixel *b2 = &bgc;
         float a2 = ((float)(s2->alpha)) / USHRT_MAX;
 
+        // Third pixel
         pixel *s3 = &src[i + 2];
         pixel *d3 = &dst[i + 2];
         pixel *b3 = &bgc;
         float a3 = ((float)(s3->alpha)) / USHRT_MAX;
 
+        // Fourth pixel
         pixel *s4 = &src[i + 3];
         pixel *d4 = &dst[i + 3];
         pixel *b4 = &bgc;
         float a4 = ((float)(s4->alpha)) / USHRT_MAX;
 
-        d1->red = (a1 * s1->red) + ((1 - a1) * b1->red);
-        d1->green = (a1 * s1->green) + ((1 - a1) * b1->green);
-        d1->blue = (a1 * s1->blue) + ((1 - a1) * b1->blue);
-        d1->alpha = USHRT_MAX;
+        // Blend
+        d1->red = (a1 * s1->red) + ((1 - a1) * b1->red);       // Access destinations red property and set it to the blend of source and background red colours
+        d1->green = (a1 * s1->green) + ((1 - a1) * b1->green); // Access destinations green property and set it to the blend of source and background green colours
+        d1->blue = (a1 * s1->blue) + ((1 - a1) * b1->blue);    // Access destinations blue property and set it to the blend of source and background blue colours
+        d1->alpha = USHRT_MAX;                                 // Make destination's alpha fully opaque
 
         d2->red = (a2 * s2->red) + ((1 - a2) * b2->red);
         d2->green = (a2 * s2->green) + ((1 - a2) * b2->green);
@@ -335,7 +319,6 @@ void blend_unroll(int dim, pixel *restrict src, pixel *restrict dst) // Tell com
 void register_blend_functions()
 {
     add_blend_function(&blend, blend_descr);
-    add_blend_function(&blend_unroll, blend_unroll_descr);
     /* ... Register additional test functions here */
 }
 
