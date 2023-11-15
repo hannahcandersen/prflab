@@ -58,7 +58,7 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // column j -> row dim - 1 - j
 char rotate_descr[] = "rotate: Current working version";
 // dim is number of columns (N)
-void rotate(int dim, pixel *restrict src, pixel *restrict dst) // restrict keyword: compiler can assume that `src` and `dst` do not overlap
+void rotate(int dim, pixel *src, pixel *dst) 
 {
     register int i, j; // register keyword: save variable in register instead of memory
     register int dim_minus_1 = dim - 1;
@@ -255,7 +255,7 @@ void naive_blend(int dim, pixel *src, pixel *dst) // reads global variable `pixe
 }
 
 char blend_descr[] = "blend: Current working version"; // IMPORTANT: The version you will be graded on
-void blend(int dim, pixel *restrict src, pixel *restrict dst) // Tell compiler that it can assume that `src` and `dst` do not overlap in memory
+void blend(int dim, pixel *src, pixel *dst) 
 {
     register int i; // Tell compiler to save variable in register
 
