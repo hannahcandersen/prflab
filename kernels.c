@@ -725,7 +725,7 @@ void blend_v(int dim, pixel *src, pixel *dst)
                 }
             }
 
-            pthread_exit();
+            pthread_exit(NULL);
         }
 
         char smoothThreads_descr[] = "Smooth with threads";
