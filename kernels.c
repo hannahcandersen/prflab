@@ -1045,6 +1045,8 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         void register_blend_v_functions()
         {
             add_blend_v_function(&blend_v, blend_v_descr);
+            add_blend_v_function(&blend2_v, blend2_v_descr);
+
             /* ... Register additional test functions here */
         }
 
