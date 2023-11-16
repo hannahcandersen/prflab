@@ -409,6 +409,10 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256 result_even = _mm256_add_ps(_mm256_mul_ps(a_ratio_even, pix_float_even), a_times_b_c_even);
         __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
 
+        // Round the result down to the nearest integer
+        result_even = _mm256_floor_ps(result_even);
+        result_uneven = _mm256_floor_ps(result_uneven);
+
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
