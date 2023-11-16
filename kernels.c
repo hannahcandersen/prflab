@@ -468,13 +468,10 @@ void blend_v_readable(int dim, pixel *src, pixel *dst)
         8 : 35155, 9 : 30708, 10 : 60904, 11 : 25205, 12 : 5732, 13 : 38782, 14 : 25010, 15 : 61456,
         ******************/
 
-        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
-        __m256i pix_int_even = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());   // Zero and second pixel
-        __m256i pix_int_uneven = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256()); // First and third pixel
-
-        // Convert to floats (4 bytes each)
-        __m256 pix_float_even = _mm256_cvtepi32_ps(pix_int_even);     // Zero and second pixel
-        __m256 pix_float_uneven = _mm256_cvtepi32_ps(pix_int_uneven); // First and third pixel
+        // Convert to two vectors of ints (4 bytes each) using unpack https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        // Then convert to floats (4 bytes each)
+        __m256 pix_float_even = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(pix4, _mm256_setzero_si256())); // Zero and second pixel
+        __m256 pix_float_uneven = _mm256_cvtepi32_ps(_mm256_unpackhi_epi16(pix4, _mm256_setzero_si256())); // First and third pixel
         /******************
         Contents of pix_float_even:
         (red, green, blue, alpha)
@@ -492,14 +489,14 @@ void blend_v_readable(int dim, pixel *src, pixel *dst)
 
         // Compute D.c = αS.c + (1 − α) * B.c
         // 1 - a
-        __m256 one_minus_alpha_even = _mm256_sub_ps(ones, alphas_even);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
-        __m256 one_minus_alpha_uneven = _mm256_sub_ps(ones, alphas_uneven); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        alphas_even = _mm256_sub_ps(ones, alphas_even);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        alphas_uneven = _mm256_sub_ps(ones, alphas_uneven); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
         // (1 - a) * B.c
-        __m256 a_times_b_c_even = _mm256_mul_ps(one_minus_alpha_even, bgv);
-        __m256 a_times_b_c_uneven = _mm256_mul_ps(one_minus_alpha_uneven, bgv);
+        __m256 result_even = _mm256_mul_ps(alphas_even, bgv);
+        __m256 result_uneven = _mm256_mul_ps(alphas_uneven, bgv);
         // αS.c + (1 − α) * B.c
-        __m256 result_even = _mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), a_times_b_c_even);
-        __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), a_times_b_c_uneven);
+        result_even = _mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), result_even);
+        result_uneven = _mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), result_uneven);
 
         // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
         result_even = _mm256_blend_ps(result_even, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
@@ -513,9 +510,8 @@ void blend_v_readable(int dim, pixel *src, pixel *dst)
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
 
-        // Store in dst [even0, uneven1, even2, uneven3]
-        __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
-        _mm256_store_si256((__m256i *)&dst[i], result_int);
+        // Store in dst [even0, uneven1, even2, uneven3] // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i], (_mm256_packus_epi32(result_int_even, result_int_uneven)));
 
         /**************************** NEXT 4 PIXELS (4-8) *****************************/
 
