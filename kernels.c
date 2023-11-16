@@ -425,8 +425,13 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
         _mm256_store_si256((__m256i *)&dst[i], result_int);
 
+
+
+
+        
         // Debugging
         /*
+        // Print a short or int vector: 
         unsigned short shorts[16];
         memcpy(shorts, &pix4, sizeof(pix4));
         printf("Loaded from src:\n");
@@ -441,6 +446,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         }
         printf("\n");
 
+        // Print a float vector
         float floatseven[8];
         memcpy(floatseven, &pix_float_even, sizeof(pix_float_even));
         printf("Contents of pix_float_even:\n");
@@ -450,23 +456,6 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         }
         printf("\n");
 
-        float alphaseven[8];
-        memcpy(alphaseven, &alphas_even, sizeof(alphas_even));
-        printf("Contents of alphas_even:\n");
-        for (int z = 0; z < 8; z++)
-        {
-            printf("%*d:%f, ", 2, z, alphaseven[z]);
-        }
-        printf("\n");
-
-        float floatsuneven[8];
-        memcpy(floatsuneven, &pix_float_uneven, sizeof(pix_float_uneven));
-        printf("Contents of pix_float_uneven:\n");
-        for (int z = 0; z < 8; z++)
-        {
-            printf("%*d:%f, ", 2, z, floatsuneven[z]);
-        }
-        printf("\n");
         */
         
     }
