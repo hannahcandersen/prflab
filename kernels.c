@@ -697,11 +697,15 @@ void blend_v(int dim, pixel *src, pixel *dst)
             int max_j = j-1 > 0 ? j-1 : 0;
             int min_j = j+1 < dim-1 ? j+1 : dim-1;
 
-            for (ii = max_i; ii <= min_i; ii++)
+            // Loop unrolling
+            for (ii = max_i; ii <= min_i; ii+=2)
             {
-                for (jj = max_j; jj <= min_j; jj++)
+                for (jj = max_j; jj <= min_j; jj+=2)
                 {
                     accumulate_sum(&sum, src[ii * dim + jj]);
+                    accumulate_sum(&sum, src[ii * dim + (jj+1)]);
+                    accumulate_sum(&sum, src[(ii+1) * dim + jj]);
+                    accumulate_sum(&sum, src[(ii+1) * dim + (jj+1)]);
                 }
             }
 
