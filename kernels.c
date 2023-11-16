@@ -363,7 +363,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
     const __m256 one_divided_by_max = _mm256_setr_ps(1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX,
                                                      1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX);
     // Vector of all USHRT_MAX to be used to set alpha to USHRT_MAX at the very end of the loop.
-    const __m256i maxes = _mm256_set1_epi16(USHRT_MAX);
+    const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
 
         for (register int i = 0; i < dim * dim; i += 4){
         // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
