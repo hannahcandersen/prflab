@@ -444,13 +444,13 @@ char blend_v_readable_descr[] = "blend_v: A version that is easier to read";
 void blend_v_readable(int dim, pixel *src, pixel *dst)
 {
     // Vector with background color (two times using four floats for each)
-    register const __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
+    const __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
     // Vector of all ones (floats) to be used to compute 1 - a
-    register const __m256 ones = _mm256_set1_ps(1.0); // [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1,0, 1.0 ]
+    const __m256 ones = _mm256_set1_ps(1.0); // [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1,0, 1.0 ]
     // Vector of 1.0 / USHRT_MAX to be used to compute a/USHRT_MAX
-    register const __m256 one_divided_by_max = _mm256_set1_ps(1.0 / USHRT_MAX);
+    const __m256 one_divided_by_max = _mm256_set1_ps(1.0 / USHRT_MAX);
     // Vector of all USHRT_MAX to be used to set alpha to USHRT_MAX at the very end of the loop.
-    register const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
+    const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
 
     // Loop unrolling of 16 pixels
     // Only use one loop instead of two because the picture is represented as a 1D array.
@@ -460,7 +460,7 @@ void blend_v_readable(int dim, pixel *src, pixel *dst)
         /**************************** FIRST 4 PIXELS (0-4) *****************************/
 
         // Vector with the first four pixels using shorts (2 bytes each)
-        register __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]);
+        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]);
         /******************
         Contents of pix4:
         (red, green, blue, alpha)
