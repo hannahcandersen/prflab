@@ -410,9 +410,10 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
 
         // Convert vectors of floats into vectors of ints
-        __m256i result_int_even = _mm256_cvtps_epi32(result_even);
-        __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
-        
+        // Convert vectors of floats into vectors of ints with rounding
+        __m256i result_int_even = _mm256_cvtps_epi32(_mm256_round_ps(result_even, _MM_FROUND_TO_NEAREST_INT));
+        __m256i result_int_uneven = _mm256_cvtps_epi32(_mm256_round_ps(result_uneven, _MM_FROUND_TO_NEAREST_INT));
+
         // Set alpha values at positions 3 and 7 to USHRT_MAX
         result_int_even = _mm256_insert_epi16(result_int_even, USHRT_MAX, 3);
         result_int_even = _mm256_insert_epi16(result_int_even, USHRT_MAX, 7);
