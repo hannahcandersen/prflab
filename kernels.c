@@ -714,26 +714,11 @@ void blend_v(int dim, pixel *src, pixel *dst)
             thread_args *args = (thread_args *)arguments;
             int dim = args->dim;
 
-            for (int i = args->start_row; i < args->end_row; i += 4)
+            for (int i = args->start_row; i < args->end_row; i += 1)
             {
-                for (int j = 0; j < dim; j += 4)
+                for (int j = 0; j < dim; j += 1)
                 {
-                    args->dst[i * dim + j] = avgWorker(dim, i, j, args->src);
-                    args->dst[i * dim + (j + 1)] = avgWorker(dim, i, j + 1, args->src);
-                    args->dst[i * dim + (j + 2)] = avgWorker(dim, i, j + 2, args->src);
-                    args->dst[i * dim + (j + 3)] = avgWorker(dim, i, j + 3, args->src);
-                    args->dst[(i + 1) * dim + j] = avgWorker(dim, i + 1, j, args->src);
-                    args->dst[(i + 1) * dim + (j + 1)] = avgWorker(dim, i + 1, j + 1, args->src);
-                    args->dst[(i + 1) * dim + (j + 2)] = avgWorker(dim, i + 1, j + 2, args->src);
-                    args->dst[(i + 1) * dim + (j + 3)] = avgWorker(dim, i + 1, j + 3, args->src);
-                    args->dst[(i + 2) * dim + j] = avgWorker(dim, i + 2, j, args->src);
-                    args->dst[(i + 2) * dim + (j + 1)] = avgWorker(dim, i + 2, j + 1, args->src);
-                    args->dst[(i + 2) * dim + (j + 2)] = avgWorker(dim, i + 2, j + 2, args->src);
-                    args->dst[(i + 2) * dim + (j + 3)] = avgWorker(dim, i + 2, j + 3, args->src);
-                    args->dst[(i + 3) * dim + j] = avgWorker(dim, i + 3, j, args->src);
-                    args->dst[(i + 3) * dim + (j + 1)] = avgWorker(dim, i + 3, j + 1, args->src);
-                    args->dst[(i + 3) * dim + (j + 2)] = avgWorker(dim, i + 3, j + 2, args->src);
-                    args->dst[(i + 3) * dim + (j + 3)] = avgWorker(dim, i + 3, j + 3, args->src);
+                    avgWorker(dim, i, j, args->src);
                 }
             }
 
