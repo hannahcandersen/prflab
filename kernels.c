@@ -527,10 +527,6 @@ void blend2_unrollig_v(int dim, pixel *src, pixel *dst)
         __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
         __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
 
-        // Round the result down to the nearest integer
-        result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
-        result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
-
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
@@ -555,6 +551,7 @@ void blend2_unrollig_v(int dim, pixel *src, pixel *dst)
         // Get alpha α from each pixel (at "index" 3 and 7)
         __m256 alphas_even_2 = _mm256_shuffle_ps(pix_float_even_2, pix_float_even_2, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
         __m256 alphas_uneven_2 = _mm256_shuffle_ps(pix_float_uneven_2, pix_float_uneven_2, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        
         // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
         __m256 a_ratio_even_2 = _mm256_mul_ps(alphas_even_2, one_divided_by_max);                                    // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
         __m256 a_ratio_uneven_2 = _mm256_mul_ps(alphas_uneven_2, one_divided_by_max);                                // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
