@@ -683,6 +683,77 @@ void blend_v(int dim, pixel *src, pixel *dst)
             }
         }
 
+        pixel avgWorker(int dim, int i, int j, pixel *src)
+        {
+            register int ii, jj;
+            pixel_sum sum;
+            pixel current_pixel;
+
+            initialize_pixel_sum(&sum);
+            
+            // Inline min and max and cache the values used for loops below
+            int max_i = i-1 > 0 ? i-1 : 0;
+            int min_i = i+1 < dim-1 ? i+1 : dim-1;
+            int max_j = j-1 > 0 ? j-1 : 0;
+            int min_j = j+1 < dim-1 ? j+1 : dim-1;
+
+            for (ii = max_i; ii <= min_i; ii++)
+            {
+                for (jj = max_j; jj <= min_j; jj++)
+                {
+                    accumulate_sum(&sum, src[ii * dim + jj]);
+                }
+            }
+
+            assign_sum_to_pixel(&current_pixel, sum);
+            return current_pixel;
+        }
+
+        void *smoothUnrollingThread(void *arguments)
+        {
+            thread_args *args = (thread_args *)arguments;
+            int dim = args->dim;
+
+            for (int i = args->start_row; i < args->end_row; i += 2)
+            {
+                for (int j = 0; j < dim; j += 2)
+                {
+                    args->dst[i * dim + j] = avgWorker(dim, i, j, args->src);
+                    args->dst[i * dim + (j + 1)] = avgWorker(dim, i, j + 1, args->src);
+                    args->dst[(i + 1) * dim + j] = avgWorker(dim, i + 1, j, args->src);
+                    args->dst[(i + 1) * dim + (j + 1)] = avgWorker(dim, i + 1, j + 1, args->src);
+                }
+            }
+
+            pthread_exit(NULL);
+        }
+
+        char smoothThreads_descr[] = "Smooth with threads";
+        void smoothThreads(int dim, pixel *src, pixel *dst)
+        {
+            pthread_t threads[4]; // 4 threads because we have 4 cores
+            thread_args thread_data[4]; // List of thread arguments
+
+            int rows_per_thread = dim / 4; // Divide rows in 4 parts
+
+            for (int t = 0; t < 4; ++t)
+            {
+                // create thread arguments
+                thread_data[t].dim = dim;
+                thread_data[t].src = src;
+                thread_data[t].dst = dst;
+                thread_data[t].start_row = t * rows_per_thread;
+                thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
+
+                pthread_create(&threads[t], NULL, smoothUnrollingThread, (void *)&thread_data[t]);
+            }
+
+            for (int i = 0; i < 4; ++i)
+            {
+                pthread_join(threads[i], NULL);
+            }
+        }
+
         /*
          * register_smooth_functions - Register all of your different versions
          *     of the smooth kernel with the driver by calling the
