@@ -390,8 +390,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         /**************************** NEXT 4 PIXELS (4-8) *****************************/
 
 
-        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i+4]);
-
+        pix4 = _mm256_load_si256((__m256i *)&src[i+4]);
 
         pix_float_even = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(pix4, _mm256_setzero_si256()));   // Zero and second pixel
         pix_float_uneven = _mm256_cvtepi32_ps(_mm256_unpackhi_epi16(pix4, _mm256_setzero_si256())); // First and third pixel
@@ -408,8 +407,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         /**************************** NEXT 4 PIXELS (8-12) *****************************/
 
 
-        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i + 8]);
-
+        pix4 = _mm256_load_si256((__m256i *)&src[i + 8]);
 
         pix_float_even = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(pix4, _mm256_setzero_si256()));   // Zero and second pixel
         pix_float_uneven = _mm256_cvtepi32_ps(_mm256_unpackhi_epi16(pix4, _mm256_setzero_si256())); // First and third pixel
@@ -426,8 +424,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         /**************************** NEXT 4 PIXELS (12-16) *****************************/
 
 
-        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i + 12]);
-
+        pix4 = _mm256_load_si256((__m256i *)&src[i + 12]);
 
         pix_float_even = _mm256_cvtepi32_ps(_mm256_unpacklo_epi16(pix4, _mm256_setzero_si256()));   // Zero and second pixel
         pix_float_uneven = _mm256_cvtepi32_ps(_mm256_unpackhi_epi16(pix4, _mm256_setzero_si256())); // First and third pixel
