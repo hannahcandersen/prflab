@@ -382,7 +382,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         // Round the result down to the nearest integer
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
-        __m256i result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
+        __m256i result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
 
         // Store in dst [even0, uneven1, even2, uneven3] 
         _mm256_store_si256((__m256i *)&dst[i], _mm256_packus_epi32(result_int_even, result_int_uneven));
@@ -400,7 +400,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
 
 
         result_int_even = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
-        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
+        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
 
         _mm256_store_si256((__m256i *)&dst[i+4], _mm256_packus_epi32(result_int_even, result_int_uneven));
 
@@ -417,7 +417,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         alphas_uneven = _mm256_mul_ps((_mm256_shuffle_ps(pix_float_uneven, pix_float_uneven, _MM_SHUFFLE(3, 3, 7, 7))), one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
 
         result_int_even = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
-        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
+        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
 
         _mm256_store_si256((__m256i *)&dst[i + 8], _mm256_packus_epi32(result_int_even, result_int_uneven));
 
@@ -434,7 +434,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
         alphas_uneven = _mm256_mul_ps((_mm256_shuffle_ps(pix_float_uneven, pix_float_uneven, _MM_SHUFFLE(3, 3, 7, 7))), one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
 
         result_int_even = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_even, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
-        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_even), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
+        result_int_uneven = _mm256_cvtps_epi32(_mm256_floor_ps(_mm256_blend_ps((_mm256_add_ps(_mm256_mul_ps(alphas_uneven, pix_float_uneven), (_mm256_mul_ps((_mm256_sub_ps(ones, alphas_even)), bgv)))), maxes, 0b10001000)));
 
         _mm256_store_si256((__m256i *)&dst[i + 12], _mm256_packus_epi32(result_int_even, result_int_uneven));
     }
