@@ -643,11 +643,13 @@ void blend_v(int dim, pixel *src, pixel *dst)
                     int j_min = max(j - 1, 0);
                     int j_max = min(j + 1, dim - 1);
 
+                    // Unroll the inner loop by a factor of 2
                     for (ii = i_min; ii <= i_max; ii++)
                     {
-                        for (jj = j_min; jj <= j_max; jj++)
+                        for (jj = j_min; jj <= j_max; jj += 2)
                         {
                             accumulate_sum(&sum, src[(ii) * (dim) + (jj)]); // Inline macro
+                            accumulate_sum(&sum, src[(ii) * (dim) + (jj + 1)]); // Inline macro
                         }
                     }
 
