@@ -714,9 +714,9 @@ void blend_v(int dim, pixel *src, pixel *dst)
             thread_args *args = (thread_args *)arguments;
             int dim = args->dim;
 
-            for (int i = args->start_row; i < args->end_row; i += 4)
+            for (int i = args->start_row; i < args->end_row; i += 2)
             {
-                for (int j = 0; j < dim; j += 4)
+                for (int j = 0; j < dim; j += 2)
                 {
                     args->dst[i * dim + j] = avgWorker(dim, i, j, args->src);
                     args->dst[i * dim + (j + 1)] = avgWorker(dim, i, j + 1, args->src);
@@ -725,7 +725,7 @@ void blend_v(int dim, pixel *src, pixel *dst)
                 }
             }
 
-            pthread_exit(NULL);
+            pthread_exit();
         }
 
         char smoothThreads_descr[] = "Smooth with threads";
