@@ -622,9 +622,6 @@ void blend_v(int dim, pixel *src, pixel *dst)
                     dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
         }
 
-        int min(int a, int b) { return (a < b ? a : b); }
-        int max(int a, int b) { return (a > b ? a : b); }
-
         char smooth_descr[] = "smooth: Current working version";
         void smooth(int dim, pixel *src, pixel *dst)
         {
