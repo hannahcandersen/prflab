@@ -764,5 +764,6 @@ void blend_v(int dim, pixel *src, pixel *dst)
         {
             add_smooth_function(&smooth, smooth_descr);
             add_smooth_function(&smoothUnrolling, smoothUnrolling_descr);
+            add_smooth_function(&smoothThreads, smoothThreads_descr);
             /* ... Register additional test functions here */
         }
