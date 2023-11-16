@@ -561,7 +561,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
 
         // Store in dst [even0, uneven1, even2, uneven3]
         result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
-        _mm256_store_si256((__m256i *)&dst[i + 16], result_int);
+        _mm256_store_si256((__m256i *)&dst[i + 12], result_int);
 
         /**************************** DEBUGGING ****************************/
         /*
