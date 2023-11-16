@@ -261,7 +261,8 @@ void blend(int dim, pixel *src, pixel *dst)
     register int i; // Tell compiler to save variable in register
 
     // Move code from blend_pixel into this function to avoid function call overhead
-    // Only use one loop instead of two because the picture is represented as a 1D array
+    // Only use one loop instead of two because the picture is represented as a 1D array. 
+        // Each pixel can be processed independently of the others so we can use only one loop
     // Use loop unrolling to handle four pixels at a time
     for (i = 0; i < dim * dim; i += 4)
     {
@@ -373,13 +374,41 @@ void blend_v(int dim, pixel *src, pixel *dst){
     }
 }
 
+// 256 bit vectors = 32 bytes
+// One pixel contains 4 unsigned short values (16 bits each = 2 bytes)
+// One pixel = 64 bits = 8 bytes
+// One vector can hold 4 pixels
+// I want to cast the shorts to floats (32 bits each = 4 bytes)
+// Therefore, 2 pixels in one vector = 8 floats in one vector
+
 char blend2_v_descr[] = "blend_v: Blend2";
 void blend2_v(int dim, pixel *src, pixel *dst)
 {
-    
-    
-}
+    // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
+    __m256i pix4 = _mm256_load_si256((__m256i *)src);
 
+    // Convert to two vectors containing 8 ints (4 bytes / 32 bits each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+    __m256i pix_int_low = _mm256_unpacklo_epi32(pix4, _mm256_setzero_si256()); // Zero and second pixel 
+    __m256i pix_int_high = _mm256_unpackhi_epi32(pix4, _mm256_setzero_si256()); // First and third pixel
+
+    // Convert vectors of ints into two vectors containing 8 floats (2 pixels)
+    __m256 pix_float_low = _mm256_cvtepi32_ps(pix_int_low);
+    __m256 pix_float_high = _mm256_cvtepi32_ps(pix_int_high);
+
+    // Debugging
+    float floats[8];
+    memcpy(floats, &pix_int_low, sizeof(pix_float_low));
+    printf("contents of flt8:\n");
+    for (int z = 0; z < 8; z++)
+    {
+        printf("%*d:%f, ", 2, z, floats[z]);
+    }
+    printf("\n");
+
+    for (register int i = 0; i < dim * dim; i += 8)
+    {
+    }
+}
 /*
  * register_blend_v_functions - Register all of your different versions
  *     of the blend_v kernel with the driver by calling the
