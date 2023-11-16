@@ -622,49 +622,49 @@ void blend_v(int dim, pixel *src, pixel *dst)
                     dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
         }
 
+        int min(int a, int b) { return (a < b ? a : b); }
+        int max(int a, int b) { return (a > b ? a : b); }
+
         char smooth_descr[] = "smooth: Current working version";
         void smooth(int dim, pixel *src, pixel *dst)
         {
-            register int i, j; // Tell compiler to save variable in register
+            register int i, j;
 
             for (i = 0; i < dim; i++)
             {
                 for (j = 0; j < dim; j++)
                 {
+                    // Inline code for avg
                     register int ii, jj;
-                    pixel_sum *sum;
-                    pixel current_pixel = src[(i) * (dim) + (j)];
+                    pixel_sum sum;  
+                    pixel current_pixel = src[i * dim + j];
 
                     // Inline code for initialize_pixel_sum
-                    sum->red = sum->green = sum->blue = sum->alpha = 0;
-                    sum->num = 0;
+                    sum.red = sum.green = sum.blue = sum.alpha = sum.num = 0;
 
-                    // Inline code for avg
-                    int i_min = max(i - 1, 0);
-                    int i_max = min(i + 1, dim - 1);
-                    int j_min = max(j - 1, 0);
-                    int j_max = min(j + 1, dim - 1);
+                    // Inline min and max functions and cache the values used for loops below
+                    int max_i = i-1 > 0 ? i-1 : 0;
+                    int min_i = i+1 < dim-1 ? i+1 : dim-1;
+                    int max_j = j-1 > 0 ? j-1 : 0;
+                    int min_j = j+1 < dim-1 ? j+1 : dim-1;
 
-                    for (ii = i_min; ii <= i_max; ii++)
-                    {
-                        for (jj = j_min; jj <= j_max; jj++)
-                        {
-                            // Inline code for accumulate_sum
-                            sum->red += (int)current_pixel.red;
-                            sum->green += (int)current_pixel.green;
-                            sum->blue += (int)current_pixel.blue;
-                            sum->alpha += (int)current_pixel.alpha;
-                            sum->num++;
+                    for (ii = max_i; ii <= min_i; ii++){
+                        for (jj = max_j; jj <= min_j; jj++){
+                            // Inline accumulate_sum
+                            pixel p = src[ii * dim + jj];
+                            sum.red += (int)p.red;
+                            sum.green += (int)p.green;
+                            sum.blue += (int)p.blue;
+                            sum.alpha += (int)p.alpha;
+                            sum.num++;
                         }
                     }
 
                     // Inline code for assign_sum_to_pixel
-                    current_pixel.red = (unsigned short)(sum->red / sum->num);
-                    current_pixel.green = (unsigned short)(sum->green / sum->num);
-                    current_pixel.blue = (unsigned short)(sum->blue / sum->num);
-                    current_pixel.alpha = (unsigned short)(sum->alpha / sum->num);
-
-                    dst[(i) * (dim) + (j)] = current_pixel;
+                    current_pixel.red = (unsigned short)(sum.red / sum.num);
+                    current_pixel.green = (unsigned short)(sum.green / sum.num);
+                    current_pixel.blue = (unsigned short)(sum.blue / sum.num);
+                    current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
                 }
             }
         }
