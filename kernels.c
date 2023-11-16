@@ -631,15 +631,15 @@ void blend_v(int dim, pixel *src, pixel *dst)
             {
                 for (j = 0; j < dim; j++)
                 {
-                    // Inline code for avg
                     register int ii, jj;
                     pixel_sum sum;
-                    pixel current_pixel = src[i * dim + j];
+                    pixel current_pixel;
 
-                    // Inline code for initialize_pixel_sum
-                    sum.red = sum.green = sum.blue = sum.alpha = sum.num = 0;
+                    // Inline initialize_pixel_sum
+                    sum.red = sum.green = sum.blue = sum.alpha = 0;
+                    sum.num = 0;
 
-                    // Inline min and max functions and cache the values used for loops below
+                    // Inline min and max and cache the values used for loops below
                     int max_i = i - 1 > 0 ? i - 1 : 0;
                     int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
                     int max_j = j - 1 > 0 ? j - 1 : 0;
@@ -650,20 +650,21 @@ void blend_v(int dim, pixel *src, pixel *dst)
                         for (jj = max_j; jj <= min_j; jj++)
                         {
                             // Inline accumulate_sum
-                            pixel p = src[ii * dim + jj];
-                            sum.red += (int)p.red;
-                            sum.green += (int)p.green;
-                            sum.blue += (int)p.blue;
-                            sum.alpha += (int)p.alpha;
+                            sum.red += (int)src[ii * dim + jj].red;
+                            sum.green += (int)src[ii * dim + jj].green;
+                            sum.blue += (int)src[ii * dim + jj].blue;
+                            sum.alpha += (int)src[ii * dim + jj].alpha;
                             sum.num++;
                         }
                     }
 
-                    // Inline code for assign_sum_to_pixel
+                    // Inline assign_sum_to_pixel
                     current_pixel.red = (unsigned short)(sum.red / sum.num);
                     current_pixel.green = (unsigned short)(sum.green / sum.num);
                     current_pixel.blue = (unsigned short)(sum.blue / sum.num);
                     current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
+
+                    dst[i * dim + j] = current_pixel;
                 }
             }
         }
