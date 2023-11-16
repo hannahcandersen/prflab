@@ -625,13 +625,36 @@ void blend_v(int dim, pixel *src, pixel *dst)
         char smooth_descr[] = "smooth: Current working version";
         void smooth(int dim, pixel *src, pixel *dst)
         {
-            register i, j; // Tell compiler to save variable in register
+            register int i, j; // Tell compiler to save variable in register
 
-            // Move code from avg into this function to avoid function call overhead
             for (i = 0; i < dim; i++)
+            {
                 for (j = 0; j < dim; j++)
-                    dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // see smooth.c
-            return;
+                {
+                    register int ii, jj;
+                    pixel_sum sum;
+                    pixel current_pixel;
+
+                    initialize_pixel_sum(&sum);
+
+                    // Inline the function avg
+                    int i_min = max(i - 1, 0);
+                    int i_max = min(i + 1, dim - 1);
+                    int j_min = max(j - 1, 0);
+                    int j_max = min(j + 1, dim - 1);
+
+                    for (ii = i_min; ii <= i_max; ii++)
+                    {
+                        for (jj = j_min; jj <= j_max; jj++)
+                        {
+                            accumulate_sum(&sum, src[(ii) * (dim) + (jj)]); // Inline macro
+                        }
+                    }
+
+                    assign_sum_to_pixel(&current_pixel, sum);
+                    dst[(i) * (dim) + (j)] = current_pixel;
+                }
+            }
         }
 
         /*
