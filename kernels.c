@@ -627,122 +627,45 @@ void blend_v(int dim, pixel *src, pixel *dst)
         {
             register int i, j;
 
-            for (i = 0; i < dim; i+=2)
+            for (i = 0; i < dim; i++)
             {
-                for (j = 0; j < dim; j+=2)
+                for (j = 0; j < dim; j++)
                 {
                     register int ii, jj;
-                    pixel_sum sum1, sum2, sum3, sum4;
-                    pixel current_pixel1, current_pixel2, current_pixel3, current_pixel4;
+                    pixel_sum sum;
+                    pixel current_pixel;
 
                     // Inline initialize_pixel_sum
-                    sum1.red = sum1.green = sum1.blue = sum1.alpha = 0;
-                    sum1.num = 0;
-                    sum2.red = sum2.green = sum2.blue = sum2.alpha = 0;
-                    sum2.num = 0;
-                    sum3.red = sum3.green = sum3.blue = sum3.alpha = 0;
-                    sum3.num = 0;
-                    sum4.red = sum4.green = sum4.blue = sum4.alpha = 0;
-                    sum4.num = 0;
+                    sum.red = sum.green = sum.blue = sum.alpha = 0;
+                    sum.num = 0;
 
                     // Inline min and max and cache the values used for loops below
-                    int max_i1 = i - 1 > 0 ? i - 1 : 0;
-                    int min_i1 = i + 1 < dim - 1 ? i + 1 : dim - 1;
-                    int max_j1 = j - 1 > 0 ? j - 1 : 0;
-                    int min_j1 = j + 1 < dim - 1 ? j + 1 : dim - 1;
+                    int max_i = i - 1 > 0 ? i - 1 : 0;
+                    int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
+                    int max_j = j - 1 > 0 ? j - 1 : 0;
+                    int min_j = j + 1 < dim - 1 ? j + 1 : dim - 1;
 
-                    int max_i2 = i + 1 < dim - 1 ? i + 1 : dim - 1;
-                    int min_i2 = i + 3 < dim - 1 ? i + 3 : dim - 1;
-                    int max_j2 = j - 1 > 0 ? j - 1 : 0;
-                    int min_j2 = j + 1 < dim - 1 ? j + 1 : dim - 1;
-
-                    int max_i3 = i - 1 > 0 ? i - 1 : 0;
-                    int min_i3 = i + 1 < dim - 1 ? i + 1 : dim - 1;
-                    int max_j3 = j + 1 < dim - 1 ? j + 1 : dim - 1;
-                    int min_j3 = j + 3 < dim - 1 ? j + 3 : dim - 1;
-
-                    int max_i4 = i + 1 < dim - 1 ? i + 1 : dim - 1;
-                    int min_i4 = i + 3 < dim - 1 ? i + 3 : dim - 1;
-                    int max_j4 = j + 1 < dim - 1 ? j + 1 : dim - 1;
-                    int min_j4 = j + 3 < dim - 1 ? j + 3 : dim - 1;
-
-                    for (ii = max_i1; ii <= min_i1; ii++)
+                    for (ii = max_i; ii <= min_i; ii++)
                     {
-                        for (jj = max_j1; jj <= min_j1; jj++)
+                        for (jj = max_j; jj <= min_j; jj++)
                         {
                             // Inline accumulate_sum
-                            sum1.red += (int)src[ii * dim + jj].red;
-                            sum1.green += (int)src[ii * dim + jj].green;
-                            sum1.blue += (int)src[ii * dim + jj].blue;
-                            sum1.alpha += (int)src[ii * dim + jj].alpha;
-                            sum1.num++;
-                        }
-                    }
-
-                    for (ii = max_i2; ii <= min_i2; ii++)
-                    {
-                        for (jj = max_j2; jj <= min_j2; jj++)
-                        {
-                            // Inline accumulate_sum
-                            sum2.red += (int)src[ii * dim + jj].red;
-                            sum2.green += (int)src[ii * dim + jj].green;
-                            sum2.blue += (int)src[ii * dim + jj].blue;
-                            sum2.alpha += (int)src[ii * dim + jj].alpha;
-                            sum2.num++;
-                        }
-                    }
-
-                    for (ii = max_i3; ii <= min_i3; ii++)
-                    {
-                        for (jj = max_j3; jj <= min_j3; jj++)
-                        {
-                            // Inline accumulate_sum
-                            sum3.red += (int)src[ii * dim + jj].red;
-                            sum3.green += (int)src[ii * dim + jj].green;
-                            sum3.blue += (int)src[ii * dim + jj].blue;
-                            sum3.alpha += (int)src[ii * dim + jj].alpha;
-                            sum3.num++;
-                        }
-                    }
-
-                    for (ii = max_i4; ii <= min_i4; ii++)
-                    {
-                        for (jj = max_j4; jj <= min_j4; jj++)
-                        {
-                            // Inline accumulate_sum
-                            sum4.red += (int)src[ii * dim + jj].red;
-                            sum4.green += (int)src[ii * dim + jj].green;
-                            sum4.blue += (int)src[ii * dim + jj].blue;
-                            sum4.alpha += (int)src[ii * dim + jj].alpha;
-                            sum4.num++;
+                            pixel x = src[ii * dim + jj];
+                            sum.red += (int)x.red;
+                            sum.green += (int)x.green;
+                            sum.blue += (int)x.blue;
+                            sum.alpha += (int)x.alpha;
+                            sum.num++;
                         }
                     }
 
                     // Inline assign_sum_to_pixel
-                    current_pixel1.red = (unsigned short)(sum1.red / sum1.num);
-                    current_pixel1.green = (unsigned short)(sum1.green / sum1.num);
-                    current_pixel1.blue = (unsigned short)(sum1.blue / sum1.num);
-                    current_pixel1.alpha = (unsigned short)(sum1.alpha / sum1.num);
+                    current_pixel.red = (unsigned short)(sum.red / sum.num);
+                    current_pixel.green = (unsigned short)(sum.green / sum.num);
+                    current_pixel.blue = (unsigned short)(sum.blue / sum.num);
+                    current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
 
-                    current_pixel2.red = (unsigned short)(sum2.red / sum2.num);
-                    current_pixel2.green = (unsigned short)(sum2.green / sum2.num);
-                    current_pixel2.blue = (unsigned short)(sum2.blue / sum2.num);
-                    current_pixel2.alpha = (unsigned short)(sum2.alpha / sum2.num);
-
-                    current_pixel3.red = (unsigned short)(sum3.red / sum3.num);
-                    current_pixel3.green = (unsigned short)(sum3.green / sum3.num);
-                    current_pixel3.blue = (unsigned short)(sum3.blue / sum3.num);
-                    current_pixel3.alpha = (unsigned short)(sum3.alpha / sum3.num);
-
-                    current_pixel4.red = (unsigned short)(sum4.red / sum4.num);
-                    current_pixel4.green = (unsigned short)(sum4.green / sum4.num);
-                    current_pixel4.blue = (unsigned short)(sum4.blue / sum4.num);
-                    current_pixel4.alpha = (unsigned short)(sum4.alpha / sum4.num);
-
-                    dst[i * dim + j] = current_pixel1;
-                    dst[i * dim + j + 1] = current_pixel2;
-                    dst[(i + 1) * dim + j] = current_pixel3;
-                    dst[(i + 1) * dim + j + 1] = current_pixel4;
+                    dst[i * dim + j] = current_pixel;
                 }
             }
         }
@@ -828,6 +751,5 @@ void blend_v(int dim, pixel *src, pixel *dst)
         void register_smooth_functions()
         {
             add_smooth_function(&smooth, smooth_descr);
-            add_smooth_function(&smoothThreads, smoothThreads_descr);
             /* ... Register additional test functions here */
         }
