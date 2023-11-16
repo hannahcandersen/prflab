@@ -473,7 +473,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         printf("Contents of alphas_even:\n");
         for (int z = 0; z < 8; z++)
         {
-            printf("%*d:%f, ", 2, z, floatseven[z]);
+            printf("%*d:%f, ", 2, z, alphaseven[z]);
         }
         printf("\n");
 
