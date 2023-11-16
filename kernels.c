@@ -591,69 +591,452 @@ void blend_v(int dim, pixel *src, pixel *dst){
     }
 }
 
-char blend3_v_descr[] = "blend_v: Double loop unrolling";
-void blend3_v(int dim, pixel *src, pixel *dst)
+char blend2_v_descr[] = "blend_v: Current working version";
+void blend2_v(int dim, pixel *src, pixel *dst)
 {
+    // Vector with background color (two times using four floats for each)
     const __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
-    const __m256 ones = _mm256_set1_ps(1.0);
+    // Vector of all ones (floats) to be used to compute 1 - a
+    const __m256 ones = _mm256_set1_ps(1.0); // [ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1,0, 1.0 ]
+    // Vector of 1.0 / USHRT_MAX to be used to compute a/USHRT_MAX
     const __m256 one_divided_by_max = _mm256_set1_ps(1.0 / USHRT_MAX);
+    // Vector of all USHRT_MAX to be used to set alpha to USHRT_MAX at the very end of the loop.
     const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
 
-    // Unroll the loop by 4 for better performance
-    for (register int i = 0; i < dim * dim; i += 16)
+    // Loop unrolling of 16 pixels
+    // Only use one loop instead of two because the picture is represented as a 1D array.
+    // Each pixel can be processed independently of the others so we can use only one loop
+    for (register int i = 0; i < dim * dim; i += 32) // Load 16 pixels at a time
     {
-        // Process 4 sets of 4 pixels at a time
-        for (int j = 0; j < 4; ++j)
+        /**************************** FIRST 4 PIXELS (0-4) *****************************/
+
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]);
+        /******************
+        Contents of pix4:
+        (red, green, blue, alpha)
+        0 : 41810, 1 : 60127, 2 : 59456, 3 : 38956, 4 : 60275, 5 : 36251, 6 : 28336, 7 : 62482,
+        8 : 35155, 9 : 30708, 10 : 60904, 11 : 25205, 12 : 5732, 13 : 38782, 14 : 25010, 15 : 61456,
+        ******************/
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());   // Zero and second pixel
+        __m256i pix_int_uneven = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even = _mm256_cvtepi32_ps(pix_int_even);     // Zero and second pixel
+        __m256 pix_float_uneven = _mm256_cvtepi32_ps(pix_int_uneven); // First and third pixel
+        /******************
+        Contents of pix_float_even:
+        (red, green, blue, alpha)
+        0:41810.000000,  1:60127.000000,  2:59456.000000,  3:38956.000000,  4:35155.000000,  5:30708.000000,  6:60904.000000,  7:25205.000000,
+        Contents of pix_float_uneven:
+        0:60275.000000,  1:36251.000000,  2:28336.000000,  3:62482.000000,  4:5732.000000,  5:38782.000000,  6:25010.000000,  7:61456.000000,
+        ******************/
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even = _mm256_shuffle_ps(pix_float_even, pix_float_even, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven = _mm256_shuffle_ps(pix_float_uneven, pix_float_uneven, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even = _mm256_mul_ps(alphas_even, one_divided_by_max);     // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven = _mm256_mul_ps(alphas_uneven, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even = _mm256_sub_ps(ones, a_ratio_even);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven = _mm256_sub_ps(ones, a_ratio_uneven); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even = _mm256_mul_ps(one_minus_alpha_even, bgv);
+        __m256 a_times_b_c_uneven = _mm256_mul_ps(one_minus_alpha_uneven, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even = _mm256_add_ps(_mm256_mul_ps(a_ratio_even, pix_float_even), a_times_b_c_even);
+        __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
+        result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even = _mm256_cvtps_epi32(result_even);
+        __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i], result_int);
+
+        /**************************** NEXT 4 PIXELS (4-8) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_2 = _mm256_load_si256((__m256i *)&src[i + 4]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_2 = _mm256_unpacklo_epi16(pix4_2, _mm256_setzero_si256());   // Zero and second pixel
+        __m256i pix_int_uneven_2 = _mm256_unpackhi_epi16(pix4_2, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_2 = _mm256_cvtepi32_ps(pix_int_even_2);     // Zero and second pixel
+        __m256 pix_float_uneven_2 = _mm256_cvtepi32_ps(pix_int_uneven_2); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_2 = _mm256_shuffle_ps(pix_float_even_2, pix_float_even_2, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_2 = _mm256_shuffle_ps(pix_float_uneven_2, pix_float_uneven_2, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_2 = _mm256_mul_ps(alphas_even_2, one_divided_by_max);     // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_2 = _mm256_mul_ps(alphas_uneven_2, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_2 = _mm256_sub_ps(ones, a_ratio_even_2);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_2 = _mm256_sub_ps(ones, a_ratio_uneven_2); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_2 = _mm256_mul_ps(one_minus_alpha_even_2, bgv);
+        __m256 a_times_b_c_uneven_2 = _mm256_mul_ps(one_minus_alpha_uneven_2, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_2 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_2, pix_float_even_2), a_times_b_c_even_2);
+        __m256 result_uneven_2 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_2, pix_float_uneven_2), a_times_b_c_uneven_2);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_2 = _mm256_blend_ps(result_even_2, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_2 = _mm256_blend_ps(result_uneven_2, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_2 = _mm256_floor_ps(result_int_even_with_alpha_max_2);
+        result_uneven_2 = _mm256_floor_ps(result_int_uneven_with_alpha_max_2);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_2 = _mm256_cvtps_epi32(result_even_2);
+        __m256i result_int_uneven_2 = _mm256_cvtps_epi32(result_uneven_2);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_2 = _mm256_packus_epi32(result_int_even_2, result_int_uneven_2); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 4], result_int_2);
+
+        /**************************** NEXT 4 PIXELS (8-12) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_3 = _mm256_load_si256((__m256i *)&src[i + 8]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_3 = _mm256_unpacklo_epi16(pix4_3, _mm256_setzero_si256());   // Zero and second pixel
+        __m256i pix_int_uneven_3 = _mm256_unpackhi_epi16(pix4_3, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_3 = _mm256_cvtepi32_ps(pix_int_even_3);     // Zero and second pixel
+        __m256 pix_float_uneven_3 = _mm256_cvtepi32_ps(pix_int_uneven_3); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_3 = _mm256_shuffle_ps(pix_float_even_3, pix_float_even_3, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_3 = _mm256_shuffle_ps(pix_float_uneven_3, pix_float_uneven_3, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_3 = _mm256_mul_ps(alphas_even_3, one_divided_by_max);     // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_3 = _mm256_mul_ps(alphas_uneven_3, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_3 = _mm256_sub_ps(ones, a_ratio_even_3);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_3 = _mm256_sub_ps(ones, a_ratio_uneven_3); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_3 = _mm256_mul_ps(one_minus_alpha_even_3, bgv);
+        __m256 a_times_b_c_uneven_3 = _mm256_mul_ps(one_minus_alpha_uneven_3, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_3 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_3, pix_float_even_3), a_times_b_c_even_3);
+        __m256 result_uneven_3 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_3, pix_float_uneven_3), a_times_b_c_uneven_3);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_3 = _mm256_blend_ps(result_even_3, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_3 = _mm256_blend_ps(result_uneven_3, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_3 = _mm256_floor_ps(result_int_even_with_alpha_max_3);
+        result_uneven_3 = _mm256_floor_ps(result_int_uneven_with_alpha_max_3);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_3 = _mm256_cvtps_epi32(result_even_3);
+        __m256i result_int_uneven_3 = _mm256_cvtps_epi32(result_uneven_3);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_3 = _mm256_packus_epi32(result_int_even_3, result_int_uneven_3); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 8], result_int_3);
+
+        /**************************** NEXT 4 PIXELS (12-16) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_4 = _mm256_load_si256((__m256i *)&src[i + 12]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_4 = _mm256_unpacklo_epi16(pix4_4, _mm256_setzero_si256());   // Zero and second pixel
+        __m256i pix_int_uneven_4 = _mm256_unpackhi_epi16(pix4_4, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_4 = _mm256_cvtepi32_ps(pix_int_even_4);     // Zero and second pixel
+        __m256 pix_float_uneven_4 = _mm256_cvtepi32_ps(pix_int_uneven_4); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_4 = _mm256_shuffle_ps(pix_float_even_4, pix_float_even_4, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_4 = _mm256_shuffle_ps(pix_float_uneven_4, pix_float_uneven_4, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_4 = _mm256_mul_ps(alphas_even_4, one_divided_by_max);     // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_4 = _mm256_mul_ps(alphas_uneven_4, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_4 = _mm256_sub_ps(ones, a_ratio_even_4);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_4 = _mm256_sub_ps(ones, a_ratio_uneven_4); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_4 = _mm256_mul_ps(one_minus_alpha_even_4, bgv);
+        __m256 a_times_b_c_uneven_4 = _mm256_mul_ps(one_minus_alpha_uneven_4, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_4 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_4, pix_float_even_4), a_times_b_c_even_4);
+        __m256 result_uneven_4 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_4, pix_float_uneven_4), a_times_b_c_uneven_4);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_4 = _mm256_blend_ps(result_even_4, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_4 = _mm256_blend_ps(result_uneven_4, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_4 = _mm256_floor_ps(result_int_even_with_alpha_max_4);
+        result_uneven_4 = _mm256_floor_ps(result_int_uneven_with_alpha_max_4);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_4 = _mm256_cvtps_epi32(result_even_4);
+        __m256i result_int_uneven_4 = _mm256_cvtps_epi32(result_uneven_4);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_4 = _mm256_packus_epi32(result_int_even_4, result_int_uneven_4); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 12], result_int_4);
+
+        /**************************** FIRST 4 PIXELS (0-4) *****************************/
+
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_16 = _mm256_load_si256((__m256i *)&src[i+16]);
+        /******************
+        Contents of pix4:
+        (red, green, blue, alpha)
+        0 : 41810, 1 : 60127, 2 : 59456, 3 : 38956, 4 : 60275, 5 : 36251, 6 : 28336, 7 : 62482,
+        8 : 35155, 9 : 30708, 10 : 60904, 11 : 25205, 12 : 5732, 13 : 38782, 14 : 25010, 15 : 61456,
+        ******************/
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_16 = _mm256_unpacklo_epi16(pix4_16, _mm256_setzero_si256()); // Zero and second pixel
+        __m256i pix_int_uneven_16 = _mm256_unpackhi_epi16(pix4_16, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_16 = _mm256_cvtepi32_ps(pix_int_even_16);  // Zero and second pixel
+        __m256 pix_float_uneven_16 = _mm256_cvtepi32_ps(pix_int_uneven_16); // First and third pixel
+        /******************
+        Contents of pix_float_even:
+        (red, green, blue, alpha)
+        0:41810.000000,  1:60127.000000,  2:59456.000000,  3:38956.000000,  4:35155.000000,  5:30708.000000,  6:60904.000000,  7:25205.000000,
+        Contents of pix_float_uneven:
+        0:60275.000000,  1:36251.000000,  2:28336.000000,  3:62482.000000,  4:5732.000000,  5:38782.000000,  6:25010.000000,  7:61456.000000,
+        ******************/
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_16 = _mm256_shuffle_ps(pix_float_even_16, pix_float_even_16, _MM_SHUFFLE(3, 3, 7, 7)); // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_16 = _mm256_shuffle_ps(pix_float_uneven_16, pix_float_uneven_16, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_16 = _mm256_mul_ps(alphas_even_16, one_divided_by_max);  // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_16 = _mm256_mul_ps(alphas_uneven_16, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_16 = _mm256_sub_ps(ones, a_ratio_even_16);  // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_16 = _mm256_sub_ps(ones, a_ratio_uneven_16); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_16 = _mm256_mul_ps(one_minus_alpha_even_16, bgv);
+        __m256 a_times_b_c_uneven_16 = _mm256_mul_ps(one_minus_alpha_uneven_16, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_16 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_16, pix_float_even_16), a_times_b_c_even_16);
+        __m256 result_uneven_16 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_16, pix_float_uneven_16), a_times_b_c_uneven_16);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_16 = _mm256_blend_ps(result_even_16, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_16 = _mm256_blend_ps(result_uneven_16, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_16 = _mm256_floor_ps(result_int_even_with_alpha_max_16);
+        result_uneven_16 = _mm256_floor_ps(result_int_uneven_with_alpha_max_16);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_16 = _mm256_cvtps_epi32(result_even_16);
+        __m256i result_int_uneven_16 = _mm256_cvtps_epi32(result_uneven_16);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_16 = _mm256_packus_epi32(result_int_even_16, result_int_uneven_16); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i+16], result_int_16);
+
+        /**************************** NEXT 4 PIXELS (4-8) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_20 = _mm256_load_si256((__m256i *)&src[i + 20]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_20 = _mm256_unpacklo_epi16(pix4_20, _mm256_setzero_si256());   // Zero and second pixel
+        __m256i pix_int_uneven_20 = _mm256_unpackhi_epi16(pix4_20, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_20 = _mm256_cvtepi32_ps(pix_int_even_20);     // Zero and second pixel
+        __m256 pix_float_uneven_20 = _mm256_cvtepi32_ps(pix_int_uneven_20); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_20 = _mm256_shuffle_ps(pix_float_even_20, pix_float_even_20, _MM_SHUFFLE(3, 3, 7, 7));       // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_20 = _mm256_shuffle_ps(pix_float_uneven_20, pix_float_uneven_20, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_20 = _mm256_mul_ps(alphas_even_20, one_divided_by_max);     // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_20 = _mm256_mul_ps(alphas_uneven_20, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_20 = _mm256_sub_ps(ones, a_ratio_even_20);     // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_20 = _mm256_sub_ps(ones, a_ratio_uneven_20); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_20 = _mm256_mul_ps(one_minus_alpha_even_20, bgv);
+        __m256 a_times_b_c_uneven_20 = _mm256_mul_ps(one_minus_alpha_uneven_20, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_20 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_20, pix_float_even_20), a_times_b_c_even_20);
+        __m256 result_uneven_20 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_20, pix_float_uneven_20), a_times_b_c_uneven_20);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_20 = _mm256_blend_ps(result_even_20, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_20 = _mm256_blend_ps(result_uneven_20, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_20 = _mm256_floor_ps(result_int_even_with_alpha_max_20);
+        result_uneven_20 = _mm256_floor_ps(result_int_uneven_with_alpha_max_20);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_20 = _mm256_cvtps_epi32(result_even_20);
+        __m256i result_int_uneven_20 = _mm256_cvtps_epi32(result_uneven_20);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_20 = _mm256_packus_epi32(result_int_even_20, result_int_uneven_20); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 20], result_int_20);
+
+        /**************************** NEXT 4 PIXELS (8-12) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_24 = _mm256_load_si256((__m256i *)&src[i + 24]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_24 = _mm256_unpacklo_epi16(pix4_24, _mm256_setzero_si256());  // Zero and second pixel
+        __m256i pix_int_uneven_24 = _mm256_unpackhi_epi16(pix4_24, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_24 = _mm256_cvtepi32_ps(pix_int_even_24);    // Zero and second pixel
+        __m256 pix_float_uneven_24 = _mm256_cvtepi32_ps(pix_int_uneven_24); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_24 = _mm256_shuffle_ps(pix_float_even_24, pix_float_even_24, _MM_SHUFFLE(3, 3, 7, 7));     // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_24 = _mm256_shuffle_ps(pix_float_uneven_24, pix_float_uneven_24, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_24 = _mm256_mul_ps(alphas_even_24, one_divided_by_max);    // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_24 = _mm256_mul_ps(alphas_uneven_24, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_24 = _mm256_sub_ps(ones, a_ratio_even_24);   // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_24 = _mm256_sub_ps(ones, a_ratio_uneven_24); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_24 = _mm256_mul_ps(one_minus_alpha_even_24, bgv);
+        __m256 a_times_b_c_uneven_24 = _mm256_mul_ps(one_minus_alpha_uneven_24, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_24 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_24, pix_float_even_24), a_times_b_c_even_24);
+        __m256 result_uneven_24 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_24, pix_float_uneven_24), a_times_b_c_uneven_24);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_24 = _mm256_blend_ps(result_even_24, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_24 = _mm256_blend_ps(result_uneven_24, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_24 = _mm256_floor_ps(result_int_even_with_alpha_max_24);
+        result_uneven_24 = _mm256_floor_ps(result_int_uneven_with_alpha_max_24);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_24 = _mm256_cvtps_epi32(result_even_24);
+        __m256i result_int_uneven_24 = _mm256_cvtps_epi32(result_uneven_24);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_24 = _mm256_packus_epi32(result_int_even_24, result_int_uneven_24); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 24], result_int_24);
+
+        /**************************** NEXT 4 PIXELS (12-16) *****************************/
+        // Vector with the first four pixels using shorts (2 bytes each)
+        __m256i pix4_28 = _mm256_load_si256((__m256i *)&src[i + 28]);
+
+        // Convert to two vectors of ints (4 bytes each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_even_28 = _mm256_unpacklo_epi16(pix4_28, _mm256_setzero_si256());  // Zero and second pixel
+        __m256i pix_int_uneven_28 = _mm256_unpackhi_epi16(pix4_28, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert to floats (4 bytes each)
+        __m256 pix_float_even_28 = _mm256_cvtepi32_ps(pix_int_even_28);    // Zero and second pixel
+        __m256 pix_float_uneven_28 = _mm256_cvtepi32_ps(pix_int_uneven_28); // First and third pixel
+
+        // Get alpha α from each pixel (at "index" 3 and 7)
+        __m256 alphas_even_28 = _mm256_shuffle_ps(pix_float_even_28, pix_float_even_28, _MM_SHUFFLE(3, 3, 7, 7));     // [a0, a0, a0, a0, a2, a2, a2, a2]
+        __m256 alphas_uneven_28 = _mm256_shuffle_ps(pix_float_uneven_28, pix_float_uneven_28, _MM_SHUFFLE(3, 3, 7, 7)); // [a1, a1, a1, a1, a3, a3, a3, a3]
+        // Compute α / USHRT_MAX (can also be written as a * 1/USHRT_MAX)
+        __m256 a_ratio_even_28 = _mm256_mul_ps(alphas_even_28, one_divided_by_max);    // [a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a0/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX, a2/USHRT_MAX]
+        __m256 a_ratio_uneven_28 = _mm256_mul_ps(alphas_uneven_28, one_divided_by_max); // [a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a1/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX, a3/USHRT_MAX]
+
+        // Compute D.c = αS.c + (1 − α) * B.c
+        // 1 - a
+        __m256 one_minus_alpha_even_28 = _mm256_sub_ps(ones, a_ratio_even_28);    // [1-a0, 1-a0, 1-a0, 1-a0, 1-a2, 1-a2, 1-a2, 1-a2]
+        __m256 one_minus_alpha_uneven_28 = _mm256_sub_ps(ones, a_ratio_uneven_28); // [1-a1, 1-a1, 1-a1, 1-a1, 1-a3, 1-a3, 1-a3, 1-a3]
+        // (1 - a) * B.c
+        __m256 a_times_b_c_even_28 = _mm256_mul_ps(one_minus_alpha_even_28, bgv);
+        __m256 a_times_b_c_uneven_28 = _mm256_mul_ps(one_minus_alpha_uneven_28, bgv);
+        // αS.c + (1 − α) * B.c
+        __m256 result_even_28 = _mm256_add_ps(_mm256_mul_ps(a_ratio_even_28, pix_float_even_28), a_times_b_c_even_28);
+        __m256 result_uneven_28 = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven_28, pix_float_uneven_28), a_times_b_c_uneven_28);
+
+        // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max_28 = _mm256_blend_ps(result_even_28, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max_28 = _mm256_blend_ps(result_uneven_28, maxes, 0b10001000);
+
+        // Round the result down to the nearest integer
+        result_even_28 = _mm256_floor_ps(result_int_even_with_alpha_max_28);
+        result_uneven_28 = _mm256_floor_ps(result_int_uneven_with_alpha_max_28);
+
+        // Convert vectors of floats into vectors of ints
+        __m256i result_int_even_28 = _mm256_cvtps_epi32(result_even_28);
+        __m256i result_int_uneven_28 = _mm256_cvtps_epi32(result_uneven_28);
+
+        // Store in dst [even0, uneven1, even2, uneven3]
+        __m256i result_int_28 = _mm256_packus_epi32(result_int_even_28, result_int_uneven_28); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        _mm256_store_si256((__m256i *)&dst[i + 28], result_int_28);
+
+        /**************************** DEBUGGING ****************************/
+        /*
+        // Print a short or int vector:
+        unsigned short shorts[16];
+        memcpy(shorts, &pix4, sizeof(pix4));
+        printf("Loaded from src:\n");
+        for (int z = 0; z < 8; z++)
         {
-            // Load 4 pixels at a time
-            __m256i pix4 = _mm256_load_si256((__m256i *)&src[i + j * 4]);
-
-            // Convert to two vectors of ints (4 bytes each)
-            __m256i pix_int_even = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());
-            __m256i pix_int_uneven = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256());
-
-            // Convert to floats (4 bytes each)
-            __m256 pix_float_even = _mm256_cvtepi32_ps(pix_int_even);
-            __m256 pix_float_uneven = _mm256_cvtepi32_ps(pix_int_uneven);
-
-            // Get alpha α from each pixel (at "index" 3 and 7)
-            __m256 alphas_even = _mm256_shuffle_ps(pix_float_even, pix_float_even, _MM_SHUFFLE(3, 3, 7, 7));
-            __m256 alphas_uneven = _mm256_shuffle_ps(pix_float_uneven, pix_float_uneven, _MM_SHUFFLE(3, 3, 7, 7));
-
-            // Compute α / USHRT_MAX
-            __m256 a_ratio_even = _mm256_mul_ps(alphas_even, one_divided_by_max);
-            __m256 a_ratio_uneven = _mm256_mul_ps(alphas_uneven, one_divided_by_max);
-
-            // Compute 1 - α
-            __m256 one_minus_alpha_even = _mm256_sub_ps(ones, a_ratio_even);
-            __m256 one_minus_alpha_uneven = _mm256_sub_ps(ones, a_ratio_uneven);
-
-            // (1 - α) * B.c
-            __m256 a_times_b_c_even = _mm256_mul_ps(one_minus_alpha_even, bgv);
-            __m256 a_times_b_c_uneven = _mm256_mul_ps(one_minus_alpha_uneven, bgv);
-
-            // αS.c + (1 − α) * B.c
-            __m256 result_even = _mm256_add_ps(_mm256_mul_ps(a_ratio_even, pix_float_even), a_times_b_c_even);
-            __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
-
-            // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
-            __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000);
-            __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
-
-            // Round the result down to the nearest integer
-            result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
-            result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
-
-            // Convert vectors of floats into vectors of ints
-            __m256i result_int_even = _mm256_cvtps_epi32(result_even);
-            __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
-
-            // Store in dst [even0, uneven1, even2, uneven3]
-            __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven);
-            _mm256_store_si256((__m256i *)&dst[i + j * 4], result_int);
+            printf("%*d:%*d, ", 2, z, 5, shorts[z]);
         }
+        printf("\n");
+        for (int z = 8; z < 16; z++)
+        {
+            printf("%*d:%*d, ", 2, z, 5, shorts[z]);
+        }
+        printf("\n");
+
+        // Print a float vector
+        float floatseven[8];
+        memcpy(floatseven, &pix_float_even, sizeof(pix_float_even));
+        printf("Contents of pix_float_even:\n");
+        for (int z = 0; z < 8; z++)
+        {
+            printf("%*d:%f, ", 2, z, floatseven[z]);
+        }
+        printf("\n");
+
+        */
     }
 }
+
         /*
          * register_blend_v_functions - Register all of your different versions
          *     of the blend_v kernel with the driver by calling the
@@ -662,7 +1045,6 @@ void blend3_v(int dim, pixel *src, pixel *dst)
         void register_blend_v_functions()
         {
             add_blend_v_function(&blend_v, blend_v_descr);
-            add_blend_v_function(&blend3_v, blend3_v_descr);
             /* ... Register additional test functions here */
         }
 
