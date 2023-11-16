@@ -412,6 +412,15 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         }
         printf("\n");
 
+        int intslow[8];
+        memcpy(intslow, &pix_int_low, sizeof(pix_int_low));
+        printf("Contents of pix_int_low:\n");
+        for (int z = 0; z < 8; z++)
+        {
+            printf("%*d:%f, ", 2, z, intslow[z]);
+        }
+        printf("\n");
+
         float floatslow[8];
         memcpy(floatslow, &pix_float_low, sizeof(pix_float_low));
         printf("Contents of pix_float_low:\n");
