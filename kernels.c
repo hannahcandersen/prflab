@@ -673,8 +673,10 @@ void blend_v(int dim, pixel *src, pixel *dst)
             pixel_sum sum;
             pixel current_pixel;
 
-            initialize_pixel_sum(&sum);
-            
+            // Inline initialize_pixel_sum
+            sum.red = sum.green = sum.blue = sum.alpha = 0;
+            sum.num = 0;
+
             // Inline min and max and cache the values used for loops below
             int max_i = i-1 > 0 ? i-1 : 0;
             int min_i = i+1 < dim-1 ? i+1 : dim-1;
@@ -685,11 +687,21 @@ void blend_v(int dim, pixel *src, pixel *dst)
             {
                 for (jj = max_j; jj <= min_j; jj++)
                 {
-                    accumulate_sum(&sum, src[ii * dim + jj]);
+                    // Inline accumulate_sum
+                    sum.red += (int)src[ii * dim + jj].red;
+                    sum.green += (int)src[ii * dim + jj].green;
+                    sum.blue += (int)src[ii * dim + jj].blue;
+                    sum.alpha += (int)src[ii * dim + jj].alpha;
+                    sum.num++;
                 }
             }
 
-            assign_sum_to_pixel(&current_pixel, sum);
+            // Inline assign_sum_to_pixel
+            current_pixel.red = (unsigned short)(sum.red / sum.num);
+            current_pixel.green = (unsigned short)(sum.green / sum.num);
+            current_pixel.blue = (unsigned short)(sum.blue / sum.num);
+            current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
+
             return current_pixel;
         }
 
