@@ -365,7 +365,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
     // Vector of all USHRT_MAX to be used to set alpha to USHRT_MAX at the very end of the loop.
     const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
 
-        for (register int i = 0; i < dim * dim; i += 4){
+    for (register int i = 0; i < dim * dim; i += 4){
         // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
         __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]);
         /******************
@@ -426,7 +426,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         _mm256_store_si256((__m256i *)&dst[i], result_int);
 
         // Debugging
-        
+        /*
         unsigned short shorts[16];
         memcpy(shorts, &pix4, sizeof(pix4));
         printf("Loaded from src:\n");
@@ -467,7 +467,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
             printf("%*d:%f, ", 2, z, floatsuneven[z]);
         }
         printf("\n");
-        
+        */
         
     }
 }
