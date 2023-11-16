@@ -345,7 +345,6 @@ pixel S , destination pixel D, and background pixel B. With α expressing the op
 D.c = αS.c + (1 − α) * B.c
 whilst making D fully opaque (i.e. D.alpha = USHRT_MAX).
 */
-// TODO: Reuse variables instead of declaring new ones.
 char blend_v_descr[] = "blend_v: Current working version";
 void blend_v(int dim, pixel *src, pixel *dst)
 {
@@ -626,7 +625,13 @@ void blend_v(int dim, pixel *src, pixel *dst)
         char smooth_descr[] = "smooth: Current working version";
         void smooth(int dim, pixel *src, pixel *dst)
         {
-            naive_smooth(dim, src, dst);
+            register i, j; // Tell compiler to save variable in register
+
+            // Move code from avg into this function to avoid function call overhead
+            for (i = 0; i < dim; i++)
+                for (j = 0; j < dim; j++)
+                    dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // see smooth.c
+            return;
         }
 
         /*
