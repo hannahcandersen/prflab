@@ -390,8 +390,8 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]); 
 
         // Convert to two vectors containing 8 ints (4 bytes / 32 bits each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
-        __m256i pix_int_low = _mm256_unpacklo_epi32(pix4, _mm256_setzero_si256());  // Zero and second pixel
-        __m256i pix_int_high = _mm256_unpackhi_epi32(pix4, _mm256_setzero_si256()); // First and third pixel
+        __m256i pix_int_low = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());  // Zero and second pixel
+        __m256i pix_int_high = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256()); // First and third pixel
 
         // Convert vectors of ints into two vectors containing 8 floats (2 pixels)
         __m256 pix_float_low = _mm256_cvtepi32_ps(pix_int_low);
