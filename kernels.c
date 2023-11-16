@@ -666,51 +666,23 @@ void blend_v(int dim, pixel *src, pixel *dst)
             }
         }
 
-        char smooth2_descr[] = "smooth: Current working version";
-        void smooth2(int dim, pixel *src, pixel *dst)
+        char smoothUnrolling_descr[] = "Smooth with unrolling";
+        void smoothUnrolling(int dim, pixel *src, pixel *dst)
         {
             register int i, j;
 
-            for (i = 0; i < dim; i++)
-            {
-                for (j = 0; j < dim; j++)
-                {
-                    // Inline code for avg
-                    register int ii, jj;
-                    pixel_sum sum;
-                    pixel current_pixel = src[i * dim + j];
-
-                    // Inline code for initialize_pixel_sum
-                    sum.red = sum.green = sum.blue = sum.alpha = sum.num = 0;
-
-                    // Inline min and max functions and cache the values used for loops below
-                    int max_i = i + 1 < dim ? i + 1 : dim - 1;
-                    int min_i = i - 1 >= 0 ? i - 1 : 0;
-                    int max_j = j + 1 < dim ? j + 1 : dim - 1;
-                    int min_j = j - 1 >= 0 ? j - 1 : 0;
-
-                    for (ii = min_i; ii <= max_i; ii++)
-                    {
-                        for (jj = min_j; jj <= max_j; jj++)
-                        {
-                            // Inline accumulate_sum
-                            pixel p = src[ii * dim + jj];
-                            sum.red += (int)p.red;
-                            sum.green += (int)p.green;
-                            sum.blue += (int)p.blue;
-                            sum.alpha += (int)p.alpha;
-                            sum.num++;
-                        }
-                    }
-
-                    // Inline code for assign_sum_to_pixel
-                    current_pixel.red = (unsigned short)(sum.red / sum.num);
-                    current_pixel.green = (unsigned short)(sum.green / sum.num);
-                    current_pixel.blue = (unsigned short)(sum.blue / sum.num);
-                    current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
+            // Unrolling of 2
+            for (i = 0; i < dim; i+2){
+                // Unrolling of 2
+                for (j = 0; j < dim; j+2){
+                    dst[i * dim + j] = avg(dim, i, j, src);
+                    dst[i * dim + (j+1)] = avg(dim, i, j+1, src);
+                    dst[(i+1) * dim + j] = avg(dim, i+1, j, src);
+                    dst[(i+1) * dim + (j+1)] = avg(dim, i+1, j+1, src);
                 }
             }
         }
+
         /*
          * register_smooth_functions - Register all of your different versions
          *     of the smooth kernel with the driver by calling the
@@ -720,6 +692,6 @@ void blend_v(int dim, pixel *src, pixel *dst)
         void register_smooth_functions()
         {
             add_smooth_function(&smooth, smooth_descr);
-            add_smooth_function(&smooth2, smooth2_descr);
+            add_smooth_function(&smoothUnrolling, smoothUnrolling_descr);
             /* ... Register additional test functions here */
         }
