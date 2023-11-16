@@ -353,7 +353,7 @@ char blend2_v_descr[] = "blend_v: Blend2";
 void blend2_v(int dim, pixel *src, pixel *dst)
 {
     // Make a vector with background color (two times using four floats for each)
-    __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
+    const __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
     // Needed for unpack.
     const __m256i zeros = _mm256_setzero_si256(); // [ 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 ]
     // Needed for setting alpha = USHRT_MAX in dst at the very end of the loop.
@@ -409,24 +409,24 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256 result_even = _mm256_add_ps(_mm256_mul_ps(a_ratio_even, pix_float_even), a_times_b_c_even);
         __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
 
+        // Set alphas [3, 7, 3, 7] to USHRT_MAX
+        __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
+
         // Round the result down to the nearest integer
-        result_even = _mm256_floor_ps(result_even);
-        result_uneven = _mm256_floor_ps(result_uneven);
+        result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
+        result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
 
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
 
-        // Set alphas [3, 7, 3, 7] to USHRT_MAX
-        __m256i result_int_even_with_alpha_max = _mm256_blendv_epi8(result_int_even, maxes, minus_ones); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
-        __m256i result_int_uneven_with_alpha_max = _mm256_blendv_epi8(result_int_uneven, maxes, minus_ones);
-
         // Store in dst [even0, uneven1, even2, uneven3]
-        __m256i result_int = _mm256_packus_epi32(result_int_even_with_alpha_max, result_int_uneven_with_alpha_max); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
         _mm256_store_si256((__m256i *)&dst[i], result_int);
 
         // Debugging
-        /*
+        
         unsigned short shorts[16];
         memcpy(shorts, &pix4, sizeof(pix4));
         printf("Loaded from src:\n");
@@ -467,7 +467,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
             printf("%*d:%f, ", 2, z, floatsuneven[z]);
         }
         printf("\n");
-        */
+        
         
     }
 }
