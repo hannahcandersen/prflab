@@ -363,7 +363,7 @@ void blend2_v(int dim, pixel *src, pixel *dst)
     const __m256 one_divided_by_max = _mm256_setr_ps(1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX,
                                                      1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX);
     // Vector of all USHRT_MAX to be used to set alpha to USHRT_MAX at the very end of the loop.
-    const __m256i alphas_int_even = _mm256_set1_epi16(USHRT_MAX);
+    const __m256i maxes = _mm256_set1_epi16(USHRT_MAX);
 
         for (register int i = 0; i < dim * dim; i += 4){
         // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
@@ -417,15 +417,12 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
 
-        // Create a vector with all elements set to USHRT_MAX
-        const __m256i alphas_int_full = _mm256_set1_epi16(USHRT_MAX);
-
         // Set alphas [3, 7, 3, 7] to USHRT_MAX
-        result_int_even = _mm256_blendv_epi8(result_int_even, alphas_int_full, minus_ones); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
-        result_int_uneven = _mm256_blendv_epi8(result_int_uneven, alphas_int_full, minus_ones);
+        __m256i result_int_even_with_alpha_max = _mm256_blendv_epi8(result_int_even, maxes, minus_ones); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
+        __m256i result_int_uneven_with_alpha_max = _mm256_blendv_epi8(result_int_uneven, maxes, minus_ones);
 
         // Store in dst [even0, uneven1, even2, uneven3]
-        __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
+        __m256i result_int = _mm256_packus_epi32(result_int_even_with_alpha_max, result_int_uneven_with_alpha_max); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
         _mm256_store_si256((__m256i *)&dst[i], result_int);
 
         // Debugging
