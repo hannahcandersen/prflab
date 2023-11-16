@@ -412,9 +412,13 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
-        // Set alphas [3, 7, 3, 7] to USHRT_MAX
-        result_int_even = _mm256_blendv_epi8(result_int_even, alphas_int_even, minus_ones); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
-        result_int_uneven = _mm256_blendv_epi8(result_int_uneven, alphas_int_even, minus_ones);
+        
+        // Set alpha values at positions 3 and 7 to USHRT_MAX
+        result_int_even = _mm256_insert_epi16(result_int_even, USHRT_MAX, 3);
+        result_int_even = _mm256_insert_epi16(result_int_even, USHRT_MAX, 7);
+
+        result_int_uneven = _mm256_insert_epi16(result_int_uneven, USHRT_MAX, 3);
+        result_int_uneven = _mm256_insert_epi16(result_int_uneven, USHRT_MAX, 7);
 
         // Store in dst [even0, uneven1, even2, uneven3]
         __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven); // packus: https://www.officedaytime.com/simd512e/simdimg/si.php?f=packssdw
