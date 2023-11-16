@@ -381,23 +381,70 @@ void blend_v(int dim, pixel *src, pixel *dst){
 // I want to cast the shorts to floats (32 bits each = 4 bytes)
 // Therefore, 2 pixels in one vector = 8 floats in one vector
 
+/*
+Function blend_pixel takes as argument three (pointers to) pixels: a source
+pixel S , destination pixel D, and background pixel B. With α expressing the opacity of the source pixel as a ratio
+(i.e. α = S .alpha / USHRT_MAX), blend_pixel computes, for each color c,
+D.c = αS.c + (1 − α)B.c
+whilst making D fully opaque (i.e. D.alpha = USHRT_MAX).
+*/
 char blend2_v_descr[] = "blend_v: Blend2";
 void blend2_v(int dim, pixel *src, pixel *dst)
 {
+    // Make a vector with background color (two times using four floats for each)
+    __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
+    // Needed for unpack.
+    const __m256i zeros = _mm256_setzero_si256(); // [ 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 ]
+    // Needed for setting alpha = USHRT_MAX in dst at the very end of the loop.
+    const __m256i minus_ones = _mm256_set1_epi64x(-1); // epi64x = 64 bit signed integer [ 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF ]
+    // Needed to convert alpha to unit-interval.
+    const __m256 one_divided_by_max = _mm256_setr_ps(1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX,
+                                                     1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX, 1.0 / USHRT_MAX);
+
     for (register int i = 0; i < dim * dim; i += 4)
     {
         // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
-        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]); 
+        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]);
+        /******************
+        Contents of pix4:
+        (red, green, blue, alpha)
+        0 : 41810, 1 : 60127, 2 : 59456, 3 : 38956, 4 : 60275, 5 : 36251, 6 : 28336, 7 : 62482,
+        8 : 35155, 9 : 30708, 10 : 60904, 11 : 25205, 12 : 5732, 13 : 38782, 14 : 25010, 15 : 61456,
+        ******************/
 
         // Convert to two vectors containing 8 ints (4 bytes / 32 bits each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
-        __m256i pix_int_low = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());  // Zero and second pixel
-        __m256i pix_int_high = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256()); // First and third pixel
+        __m256i pix_int_even = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256()); // Zero and second pixel
+        __m256i pix_int_uneven = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256()); // First and third pixel
 
         // Convert vectors of ints into two vectors containing 8 floats (2 pixels)
-        __m256 pix_float_low = _mm256_cvtepi32_ps(pix_int_low);
-        __m256 pix_float_high = _mm256_cvtepi32_ps(pix_int_high);
+        __m256 pix_float_even = _mm256_cvtepi32_ps(pix_int_even); // Zero and second pixel
+        __m256 pix_float_uneven = _mm256_cvtepi32_ps(pix_int_uneven); // First and third pixel
+        /******************
+        Contents of pix_float_even:
+        (red, green, blue, alpha)
+        0:41810.000000,  1:60127.000000,  2:59456.000000,  3:38956.000000,  4:35155.000000,  5:30708.000000,  6:60904.000000,  7:25205.000000,
+        Contents of pix_float_uneven:
+        0:60275.000000,  1:36251.000000,  2:28336.000000,  3:62482.000000,  4:5732.000000,  5:38782.000000,  6:25010.000000,  7:61456.000000,
+        ******************/
+
+        // Now do the calculations from blend (hints: shuffle, permute, blend, add, mult)
+
+        // Compute a_ratio for each pixel (α = S.alpha / USHRT_MAX)
+        __m256 alphas_even = _mm256_shuffle_ps(pix_float_even, pix_float_even, _MM_SHUFFLE(3, 3, 7, 7)); // Get alpha from each pixel
+
+
+
+
+
+
+
+
+       // Store in dst
+
+
 
         // Debugging
+        
         unsigned short shorts[16];
         memcpy(shorts, &pix4, sizeof(pix4));
         printf("Loaded from src:\n");
@@ -412,32 +459,33 @@ void blend2_v(int dim, pixel *src, pixel *dst)
         }
         printf("\n");
 
-        int intslow[8];
-        memcpy(intslow, &pix_int_low, sizeof(pix_int_low));
-        printf("Contents of pix_int_low:\n");
+        float floatseven[8];
+        memcpy(floatseven, &pix_float_even, sizeof(pix_float_even));
+        printf("Contents of pix_float_even:\n");
         for (int z = 0; z < 8; z++)
         {
-            printf("%*d:%f, ", 2, z, intslow[z]);
+            printf("%*d:%f, ", 2, z, floatseven[z]);
         }
         printf("\n");
 
-        float floatslow[8];
-        memcpy(floatslow, &pix_float_low, sizeof(pix_float_low));
-        printf("Contents of pix_float_low:\n");
+        float alphaseven[8];
+        memcpy(alphaseven, &alphas_even, sizeof(alphas_even));
+        printf("Contents of alphas_even:\n");
         for (int z = 0; z < 8; z++)
         {
-            printf("%*d:%f, ", 2, z, floatslow[z]);
+            printf("%*d:%f, ", 2, z, floatseven[z]);
         }
         printf("\n");
 
-        float floatshigh[8];
-        memcpy(floatshigh, &pix_float_high, sizeof(pix_float_high));
-        printf("Contents of pix_float_high:\n");
+        float floatsuneven[8];
+        memcpy(floatsuneven, &pix_float_uneven, sizeof(pix_float_uneven));
+        printf("Contents of pix_float_uneven:\n");
         for (int z = 0; z < 8; z++)
         {
-            printf("%*d:%f, ", 2, z, floatshigh[z]);
+            printf("%*d:%f, ", 2, z, floatsuneven[z]);
         }
         printf("\n");
+        
     }
 }
 /*
