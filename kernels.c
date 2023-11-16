@@ -202,25 +202,26 @@ void rotate_t(int dim, pixel *src, pixel *dst)
         return; 
     }
 
-    pthread_t threads[4];
-    thread_args thread_data[4];
+    pthread_t threads[4]; // 4 threads because 4 cores
+    thread_args thread_data[4]; // Thread arguments
 
-    int rows_per_thread = dim / 4;
+    int rows_per_thread = dim / 4; // Divide rows in 4 parts
 
     for (int t = 0; t < 4; t++)
     {
+        // create thread arguments
         thread_data[t].dim = dim;
         thread_data[t].src = src;
         thread_data[t].dst = dst;
         thread_data[t].start_row = t * rows_per_thread;
-        thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread;
+        thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
 
-        pthread_create(&threads[t], NULL, rotate_thread, (void *)&thread_data[t]);
+        pthread_create(&threads[t], NULL, rotate_thread, (void *)&thread_data[t]); // Create thread
     }
 
     for (int t = 0; t < 4; t++)
     {
-        pthread_join(threads[t], NULL);
+        pthread_join(threads[t], NULL); // Wait for all threads to finish
     }
 }
 
@@ -370,7 +371,13 @@ void blend_v(int dim, pixel *src, pixel *dst){
         // Store result back into dst
         _mm256_storeu_ps(&dst[i].red, result);
     }
+}
 
+char blend2_v_descr[] = "blend_v: Blend2";
+void blend2_v(int dim, pixel *src, pixel *dst)
+{
+    
+    
 }
 
 /*
@@ -381,6 +388,7 @@ void blend_v(int dim, pixel *src, pixel *dst){
 void register_blend_v_functions()
 {
     add_blend_v_function(&blend_v, blend_v_descr);
+    add_blend_v_function(&blend2_v, blend2_v_descr);
     /* ... Register additional test functions here */
 }
 
