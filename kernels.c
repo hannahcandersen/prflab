@@ -666,22 +666,6 @@ void blend_v(int dim, pixel *src, pixel *dst)
             }
         }
 
-        char smoothUnrolling_descr[] = "Smooth with unrolling";
-        void smoothUnrolling(int dim, pixel *src, pixel *dst)
-        {
-            register int i, j;
-
-            // Unrolling of 2
-            for (i = 0; i < dim; i+=2){
-                // Unrolling of 2
-                for (j = 0; j < dim; j+=2){
-                    dst[i * dim + j] = avg(dim, i, j, src);
-                    dst[i * dim + (j+1)] = avg(dim, i, j+1, src);
-                    dst[(i+1) * dim + j] = avg(dim, i+1, j, src);
-                    dst[(i+1) * dim + (j+1)] = avg(dim, i+1, j+1, src);
-                }
-            }
-        }
 
         pixel avgWorker(int dim, int i, int j, pixel *src)
         {
@@ -731,24 +715,24 @@ void blend_v(int dim, pixel *src, pixel *dst)
         char smoothThreads_descr[] = "Smooth with threads";
         void smoothThreads(int dim, pixel *src, pixel *dst)
         {
-            pthread_t threads[8]; // 4 threads because we have 4 cores
-            thread_args thread_data[8]; // List of thread arguments
+            pthread_t threads[4]; // 4 threads because we have 4 cores
+            thread_args thread_data[4]; // List of thread arguments
 
-            int rows_per_thread = dim / 8; // Divide rows in 4 parts
+            int rows_per_thread = dim / 4; // Divide rows in 4 parts
 
-            for (int t = 0; t < 8; ++t)
+            for (int t = 0; t < 4; ++t)
             {
                 // create thread arguments
                 thread_data[t].dim = dim;
                 thread_data[t].src = src;
                 thread_data[t].dst = dst;
                 thread_data[t].start_row = t * rows_per_thread;
-                thread_data[t].end_row = (t == 7) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
+                thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
 
                 pthread_create(&threads[t], NULL, smoothUnrollingThread, (void *)&thread_data[t]);
             }
 
-            for (int i = 0; i < 8; ++i)
+            for (int i = 0; i < 4; ++i)
             {
                 pthread_join(threads[i], NULL);
             }
@@ -763,7 +747,6 @@ void blend_v(int dim, pixel *src, pixel *dst)
         void register_smooth_functions()
         {
             add_smooth_function(&smooth, smooth_descr);
-            add_smooth_function(&smoothUnrolling, smoothUnrolling_descr);
             add_smooth_function(&smoothThreads, smoothThreads_descr);
             /* ... Register additional test functions here */
         }
