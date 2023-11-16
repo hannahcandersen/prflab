@@ -590,50 +590,115 @@ void blend_v(int dim, pixel *src, pixel *dst){
         */
     }
 }
-/*
- * register_blend_v_functions - Register all of your different versions
- *     of the blend_v kernel with the driver by calling the
- *     add_blend_function() for each test function.
- */
-void register_blend_v_functions()
+
+char blend3_v_descr[] = "blend_v: Double loop unrolling";
+void blend3_v(int dim, pixel *src, pixel *dst)
 {
-    add_blend_v_function(&blend_v, blend_v_descr);
-    /* ... Register additional test functions here */
+    const __m256 bgv = _mm256_setr_ps(bgc.red, bgc.green, bgc.blue, 0.0, bgc.red, bgc.green, bgc.blue, 0.0);
+    const __m256 ones = _mm256_set1_ps(1.0);
+    const __m256 one_divided_by_max = _mm256_set1_ps(1.0 / USHRT_MAX);
+    const __m256 maxes = _mm256_set1_ps(USHRT_MAX);
+
+    // Unroll the loop by 4 for better performance
+    for (register int i = 0; i < dim * dim; i += 16)
+    {
+        // Process 4 sets of 4 pixels at a time
+        for (int j = 0; j < 4; ++j)
+        {
+            // Load 4 pixels at a time
+            __m256i pix4 = _mm256_load_si256((__m256i *)&src[i + j * 4]);
+
+            // Convert to two vectors of ints (4 bytes each)
+            __m256i pix_int_even = _mm256_unpacklo_epi16(pix4, _mm256_setzero_si256());
+            __m256i pix_int_uneven = _mm256_unpackhi_epi16(pix4, _mm256_setzero_si256());
+
+            // Convert to floats (4 bytes each)
+            __m256 pix_float_even = _mm256_cvtepi32_ps(pix_int_even);
+            __m256 pix_float_uneven = _mm256_cvtepi32_ps(pix_int_uneven);
+
+            // Get alpha α from each pixel (at "index" 3 and 7)
+            __m256 alphas_even = _mm256_shuffle_ps(pix_float_even, pix_float_even, _MM_SHUFFLE(3, 3, 7, 7));
+            __m256 alphas_uneven = _mm256_shuffle_ps(pix_float_uneven, pix_float_uneven, _MM_SHUFFLE(3, 3, 7, 7));
+
+            // Compute α / USHRT_MAX
+            __m256 a_ratio_even = _mm256_mul_ps(alphas_even, one_divided_by_max);
+            __m256 a_ratio_uneven = _mm256_mul_ps(alphas_uneven, one_divided_by_max);
+
+            // Compute 1 - α
+            __m256 one_minus_alpha_even = _mm256_sub_ps(ones, a_ratio_even);
+            __m256 one_minus_alpha_uneven = _mm256_sub_ps(ones, a_ratio_uneven);
+
+            // (1 - α) * B.c
+            __m256 a_times_b_c_even = _mm256_mul_ps(one_minus_alpha_even, bgv);
+            __m256 a_times_b_c_uneven = _mm256_mul_ps(one_minus_alpha_uneven, bgv);
+
+            // αS.c + (1 − α) * B.c
+            __m256 result_even = _mm256_add_ps(_mm256_mul_ps(a_ratio_even, pix_float_even), a_times_b_c_even);
+            __m256 result_uneven = _mm256_add_ps(_mm256_mul_ps(a_ratio_uneven, pix_float_uneven), a_times_b_c_uneven);
+
+            // Set alphas at "index" [3, 7, 3, 7] to USHRT_MAX
+            __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000);
+            __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
+
+            // Round the result down to the nearest integer
+            result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
+            result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
+
+            // Convert vectors of floats into vectors of ints
+            __m256i result_int_even = _mm256_cvtps_epi32(result_even);
+            __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
+
+            // Store in dst [even0, uneven1, even2, uneven3]
+            __m256i result_int = _mm256_packus_epi32(result_int_even, result_int_uneven);
+            _mm256_store_si256((__m256i *)&dst[i + j * 4], result_int);
+        }
+    }
 }
+        /*
+         * register_blend_v_functions - Register all of your different versions
+         *     of the blend_v kernel with the driver by calling the
+         *     add_blend_function() for each test function.
+         */
+        void register_blend_v_functions()
+        {
+            add_blend_v_function(&blend_v, blend_v_descr);
+            add_blend_v_function(&blend3_v, blend3_v_descr);
+            /* ... Register additional test functions here */
+        }
 
-/******************************************************************************
- * SMOOTH KERNEL
- *****************************************************************************/
+        /******************************************************************************
+         * SMOOTH KERNEL
+         *****************************************************************************/
 
-// Your different versions of the smooth kernel go here
+        // Your different versions of the smooth kernel go here
 
-/*
- * naive_smooth - The naive baseline version of smooth
- */
-char naive_smooth_descr[] = "naive_smooth: Naive baseline implementation";
-void naive_smooth(int dim, pixel *src, pixel *dst)
-{
-    int i, j;
+        /*
+         * naive_smooth - The naive baseline version of smooth
+         */
+        char naive_smooth_descr[] = "naive_smooth: Naive baseline implementation";
+        void naive_smooth(int dim, pixel *src, pixel *dst)
+        {
+            int i, j;
 
-    for (i = 0; i < dim; i++)
-        for (j = 0; j < dim; j++)
-            dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
-}
+            for (i = 0; i < dim; i++)
+                for (j = 0; j < dim; j++)
+                    dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
+        }
 
-char smooth_descr[] = "smooth: Current working version";
-void smooth(int dim, pixel *src, pixel *dst)
-{
-    naive_smooth(dim, src, dst);
-}
+        char smooth_descr[] = "smooth: Current working version";
+        void smooth(int dim, pixel *src, pixel *dst)
+        {
+            naive_smooth(dim, src, dst);
+        }
 
-/*
- * register_smooth_functions - Register all of your different versions
- *     of the smooth kernel with the driver by calling the
- *     add_smooth_function() for each test function.
- */
+        /*
+         * register_smooth_functions - Register all of your different versions
+         *     of the smooth kernel with the driver by calling the
+         *     add_smooth_function() for each test function.
+         */
 
-void register_smooth_functions()
-{
-    add_smooth_function(&smooth, smooth_descr);
-    /* ... Register additional test functions here */
-}
+        void register_smooth_functions()
+        {
+            add_smooth_function(&smooth, smooth_descr);
+            /* ... Register additional test functions here */
+        }
