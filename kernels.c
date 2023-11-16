@@ -672,9 +672,9 @@ void blend_v(int dim, pixel *src, pixel *dst)
             register int i, j;
 
             // Unrolling of 2
-            for (i = 0; i < dim; i+2){
+            for (i = 0; i < dim; i+=2){
                 // Unrolling of 2
-                for (j = 0; j < dim; j+2){
+                for (j = 0; j < dim; j+=2){
                     dst[i * dim + j] = avg(dim, i, j, src);
                     dst[i * dim + (j+1)] = avg(dim, i, j+1, src);
                     dst[(i+1) * dim + j] = avg(dim, i+1, j, src);
