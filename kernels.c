@@ -384,29 +384,51 @@ void blend_v(int dim, pixel *src, pixel *dst){
 char blend2_v_descr[] = "blend_v: Blend2";
 void blend2_v(int dim, pixel *src, pixel *dst)
 {
-    // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
-    __m256i pix4 = _mm256_load_si256((__m256i *)src);
-
-    // Convert to two vectors containing 8 ints (4 bytes / 32 bits each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
-    __m256i pix_int_low = _mm256_unpacklo_epi32(pix4, _mm256_setzero_si256()); // Zero and second pixel 
-    __m256i pix_int_high = _mm256_unpackhi_epi32(pix4, _mm256_setzero_si256()); // First and third pixel
-
-    // Convert vectors of ints into two vectors containing 8 floats (2 pixels)
-    __m256 pix_float_low = _mm256_cvtepi32_ps(pix_int_low);
-    __m256 pix_float_high = _mm256_cvtepi32_ps(pix_int_high);
-
-    // Debugging
-    float floats[8];
-    memcpy(floats, &pix_int_low, sizeof(pix_float_low));
-    printf("contents of flt8:\n");
-    for (int z = 0; z < 8; z++)
+    for (register int i = 0; i < dim * dim; i += 4)
     {
-        printf("%*d:%f, ", 2, z, floats[z]);
-    }
-    printf("\n");
+        // Load 4 pixels of in total 16 shorts (2 bytes / 16 bits) into a vector
+        __m256i pix4 = _mm256_load_si256((__m256i *)&src[i]); 
 
-    for (register int i = 0; i < dim * dim; i += 8)
-    {
+        // Convert to two vectors containing 8 ints (4 bytes / 32 bits each) https://www.officedaytime.com/simd512e/simdimg/unpack.php?f=punpckhwd
+        __m256i pix_int_low = _mm256_unpacklo_epi32(pix4, _mm256_setzero_si256());  // Zero and second pixel
+        __m256i pix_int_high = _mm256_unpackhi_epi32(pix4, _mm256_setzero_si256()); // First and third pixel
+
+        // Convert vectors of ints into two vectors containing 8 floats (2 pixels)
+        __m256 pix_float_low = _mm256_cvtepi32_ps(pix_int_low);
+        __m256 pix_float_high = _mm256_cvtepi32_ps(pix_int_high);
+
+        // Debugging
+        unsigned short shorts[16];
+        memcpy(shorts, &pix4, sizeof(pix4));
+        printf("Loaded from src:\n");
+        for (int z = 0; z < 8; z++)
+        {
+            printf("%*d:%*d, ", 2, z, 5, shorts[z]);
+        }
+        printf("\n");
+        for (int z = 8; z < 16; z++)
+        {
+            printf("%*d:%*d, ", 2, z, 5, shorts[z]);
+        }
+        printf("\n");
+
+        float floats[8];
+        memcpy(floats, &pix_float_low, sizeof(pix_float_low));
+        printf("Contents of pix_float_low:\n");
+        for (int z = 0; z < 8; z++)
+        {
+            printf("%*d:%f, ", 2, z, floats[z]);
+        }
+        printf("\n");
+
+        float floats[8];
+        memcpy(floats, &pix_float_high, sizeof(pix_float_high));
+        printf("Contents of pix_float_high:\n");
+        for (int z = 0; z < 8; z++)
+        {
+            printf("%*d:%f, ", 2, z, floats[z]);
+        }
+        printf("\n");
     }
 }
 /*
