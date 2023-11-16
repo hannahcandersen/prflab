@@ -622,7 +622,7 @@ void blend_v(int dim, pixel *src, pixel *dst)
                     dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
         }
 
-        char smooth_descr[] = "smooth: Current working version";
+        char smooth_descr[] = "smooth: Current working version - Inlining";
         void smooth(int dim, pixel *src, pixel *dst)
         {
             register int i, j;
@@ -633,20 +633,22 @@ void blend_v(int dim, pixel *src, pixel *dst)
                 {
                     // Inline code for avg
                     register int ii, jj;
-                    pixel_sum sum;  
+                    pixel_sum sum;
                     pixel current_pixel = src[i * dim + j];
 
                     // Inline code for initialize_pixel_sum
                     sum.red = sum.green = sum.blue = sum.alpha = sum.num = 0;
 
                     // Inline min and max functions and cache the values used for loops below
-                    int max_i = i-1 > 0 ? i-1 : 0;
-                    int min_i = i+1 < dim-1 ? i+1 : dim-1;
-                    int max_j = j-1 > 0 ? j-1 : 0;
-                    int min_j = j+1 < dim-1 ? j+1 : dim-1;
+                    int max_i = i - 1 > 0 ? i - 1 : 0;
+                    int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
+                    int max_j = j - 1 > 0 ? j - 1 : 0;
+                    int min_j = j + 1 < dim - 1 ? j + 1 : dim - 1;
 
-                    for (ii = max_i; ii <= min_i; ii++){
-                        for (jj = max_j; jj <= min_j; jj++){
+                    for (ii = max_i; ii <= min_i; ii++)
+                    {
+                        for (jj = max_j; jj <= min_j; jj++)
+                        {
                             // Inline accumulate_sum
                             pixel p = src[ii * dim + jj];
                             sum.red += (int)p.red;
@@ -673,10 +675,8 @@ void blend_v(int dim, pixel *src, pixel *dst)
             pixel_sum sum;
             pixel current_pixel;
 
-            // Inline initialize_pixel_sum
-            sum.red = sum.green = sum.blue = sum.alpha = 0;
-            sum.num = 0;
-
+            initialize_pixel_sum(&sum);
+            
             // Inline min and max and cache the values used for loops below
             int max_i = i-1 > 0 ? i-1 : 0;
             int min_i = i+1 < dim-1 ? i+1 : dim-1;
@@ -687,21 +687,11 @@ void blend_v(int dim, pixel *src, pixel *dst)
             {
                 for (jj = max_j; jj <= min_j; jj++)
                 {
-                    // Inline accumulate_sum
-                    sum.red += (int)src[ii * dim + jj].red;
-                    sum.green += (int)src[ii * dim + jj].green;
-                    sum.blue += (int)src[ii * dim + jj].blue;
-                    sum.alpha += (int)src[ii * dim + jj].alpha;
-                    sum.num++;
+                    accumulate_sum(&sum, src[ii * dim + jj]);
                 }
             }
 
-            // Inline assign_sum_to_pixel
-            current_pixel.red = (unsigned short)(sum.red / sum.num);
-            current_pixel.green = (unsigned short)(sum.green / sum.num);
-            current_pixel.blue = (unsigned short)(sum.blue / sum.num);
-            current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
-
+            assign_sum_to_pixel(&current_pixel, sum);
             return current_pixel;
         }
 
