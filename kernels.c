@@ -527,6 +527,10 @@ void blend2_unrollig_v(int dim, pixel *src, pixel *dst)
         __m256 result_int_even_with_alpha_max = _mm256_blend_ps(result_even, maxes, 0b10001000); // blendv: https://www.officedaytime.com/simd512e/simdimg/si.php?f=blendvps
         __m256 result_int_uneven_with_alpha_max = _mm256_blend_ps(result_uneven, maxes, 0b10001000);
 
+        // Round the result down to the nearest integer
+        result_even = _mm256_floor_ps(result_int_even_with_alpha_max);
+        result_uneven = _mm256_floor_ps(result_int_uneven_with_alpha_max);
+
         // Convert vectors of floats into vectors of ints
         __m256i result_int_even = _mm256_cvtps_epi32(result_even);
         __m256i result_int_uneven = _mm256_cvtps_epi32(result_uneven);
