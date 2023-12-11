@@ -147,7 +147,6 @@ void *rotate_thread(void *arg)
 
     register int i, j;
 
-    // Same code as in rotate
     for (i = start_row; i < end_row; i += 4)
     { // Unrolling by 4
 
