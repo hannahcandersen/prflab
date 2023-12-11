@@ -159,9 +159,6 @@ void *rotate_thread(void *arg)
 
             // Precompute indices
             int dim_minus_1_minus_j = dim - 1 - j;
-            int i_plus_1 = i + 1;
-            int i_plus_2 = i + 2;
-            int i_plus_3 = i + 3;
 
             // src: Row 1, column 1-4. Good spatial locality
             // dst: Column 1, row 4-1. Bad spatial locality
@@ -172,24 +169,24 @@ void *rotate_thread(void *arg)
 
             // src: Row 2, column 1-4. Good spatial locality
             // dst: Column 2, row 4-1. Bad spatial locality
-            dst[dim_minus_1_minus_j * dim + i_plus_1] = src[i_plus_1 * dim + j];           // dst[RIDX(dim - 1 - j, i + 1, dim)] = src[RIDX(i + 1, j, dim)]
-            dst[(dim_minus_1_minus_j - 1) * dim + i_plus_1] = src[i_plus_1 * dim + j + 1]; // dst[RIDX(dim - 1 - j - 1, i + 1, dim)] = src[RIDX(i + 1, j + 1, dim)]
-            dst[(dim_minus_1_minus_j - 2) * dim + i_plus_1] = src[i_plus_1 * dim + j + 2]; // dst[RIDX(dim - 1 - j - 2, i + 1, dim)] = src[RIDX(i + 1, j + 2, dim)]
-            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_1] = src[i_plus_1 * dim + j + 3];  // dst[RIDX(dim - 1 - j - 3, i + 1, dim)] = src[RIDX(i + 1, j + 3, dim)]
+            dst[dim_minus_1_minus_j * dim + i + 1] = src[(i + 1) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
 
             // src: Row 3, column 1-4. Good spatial locality
             // dst: Column 3, row 4-1. Bad spatial locality
-            dst[dim_minus_1_minus_j * dim + i_plus_2] = src[i_plus_2 * dim + j];
-            dst[(dim_minus_1_minus_j - 1) * dim + i_plus_2] = src[i_plus_2 * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i_plus_2] = src[i_plus_2 * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_2] = src[i_plus_2 * dim + j + 3];
+            dst[dim_minus_1_minus_j * dim + i + 2] = src[(i + 2) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
 
             // src: Row 4, column 1-4. Good spatial locality
             // dst: Column 4, row 4-1. Bad spatial locality
-            dst[dim_minus_1_minus_j * dim + i_plus_3] = src[i_plus_3 * dim + j];
-            dst[(dim_minus_1_minus_j - 1) * dim + i_plus_3] = src[i_plus_3 * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i_plus_3] = src[i_plus_3 * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_3] = src[i_plus_3 * dim + j + 3];
+            dst[dim_minus_1_minus_j * dim + i + 3] = src[(i + 3) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
         }
     }
     return NULL; // return value is not used
