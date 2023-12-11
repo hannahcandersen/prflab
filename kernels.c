@@ -146,7 +146,6 @@ void *rotate_thread(void *arg)
     int end_row = args->end_row;
 
     register int i, j;
-    register int dim_minus_1 = dim - 1;
 
     // Same code as in rotate
     for (i = start_row; i < end_row; i += 4)
@@ -156,33 +155,37 @@ void *rotate_thread(void *arg)
         // Unrolling by 4
         {
             // Inlining RIDX macro because this can give overhead
+            // RIDX(i,j,n) ((i)*(n)+(j))
 
-            // Precompute indices
-            int dim_minus_1_minus_j = dim_minus_1 - j;
+            // Precompute frequently used indices
+            int dim_minus_1_minus_j = dim - 1 - j;
+            int i_plus_1 = i + 1;
+            int i_plus_2 = i + 2;
+            int i_plus_3 = i + 3;
 
-            // First column
-            dst[(dim_minus_1_minus_j)*dim + i] = src[i * dim + j];
-            dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
-            dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
-            dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
+            // First four columns in first row in src to first four rows in first column in dst - Good spatial locality for src
+            dst[(dim_minus_1_minus_j) * dim + i] = src[i * dim + j];            // dst[RIDX(dim - 1 - j, i, dim)] = src[RIDX(i, j, dim)];
+            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];    // dst[RIDX(dim - 1 - j - 1, i, dim)] = src[RIDX(i, j + 1, dim)];
+            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];    // dst[RIDX(dim - 1 - j - 2, i, dim)] = src[RIDX(i, j + 2, dim)];
+            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];    // dst[RIDX(dim - 1 - j - 3, i, dim)] = src[RIDX(i, j + 3, dim)];
 
-            // Second column
-            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+            // First four columns in second row in src to first four rows in second column in dst
+            dst[dim_minus_1_minus_j * dim + i_plus_1] = src[i_plus_1 * dim + j];            // dst[RIDX(dim - 1 - j, i + 1, dim)] = src[RIDX(i + 1, j, dim)];
+            dst[(dim_minus_1_minus_j - 1) * dim + i_plus_1] = src[i_plus_1 * dim + j + 1];  // dst[RIDX(dim - 1 - j - 1, i + 1, dim)] = src[RIDX(i + 1, j + 1, dim)];
+            dst[(dim_minus_1_minus_j - 2) * dim + i_plus_1] = src[i_plus_1 * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_1] = src[i_plus_1 * dim + j + 3];
 
-            // Third column
-            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+            // First four columns in third row in src to first four rows in third column in dst
+            dst[dim_minus_1_minus_j *dim + i_plus_2] = src[i_plus_2 * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * i_plus_2] = src[i_plus_2 * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * i_plus_2] = src[i_plus_2 * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * i_plus_2] = src[i_plus_2 * dim + j + 3];
 
-            // Fourth column
-            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
+            // First four columns in fourth row in src to first four rows in fourth column in dst
+            dst[dim_minus_1_minus_j * dim + i_plus_3] = src[i_plus_3 * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i_plus_3] = src[i_plus_3 * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i_plus_3] = src[i_plus_3 * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_3] = src[i_plus_3 * dim + j + 3];
         }
     }
     return NULL; // return value is not used
