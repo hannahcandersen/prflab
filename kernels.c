@@ -160,28 +160,28 @@ void *rotate_thread(void *arg)
             // Precompute indices
             int dim_minus_1_minus_j = dim_minus_1 - j;
 
-            // First row
+            // First column
             dst[(dim_minus_1_minus_j)*dim + i] = src[i * dim + j];
-            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
-
-            // Second row
             dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
-
-            // Third row
             dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
-            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
-            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
-            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
-
-            // Fourth row
             dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
+
+            // Second column
+            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
             dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+
+            // Third column
+            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
             dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+
+            // Fourth column
+            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
             dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
         }
     }
