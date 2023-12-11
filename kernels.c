@@ -153,10 +153,9 @@ void *rotate_thread(void *arg)
     register int dim_minus_1 = dim - 1;
 
     // Same code as in rotate
-    for (i = start_row; i < end_row; i += 4)
+    for (j = 0; j < dim; j += 4)
     { // Unrolling by 4
-
-        for (j = 0; j < dim; j += 4)
+        for (i = start_row; i < end_row; i += 4)
         // Unrolling by 4
         {
             // Inlining RIDX macro because this can give overhead
