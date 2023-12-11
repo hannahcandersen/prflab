@@ -58,7 +58,7 @@ void naive_rotate(int dim, pixel *src, pixel *dst)
 // column j -> row dim - 1 - j
 char rotate_descr[] = "rotate: Current working version";
 // dim is number of columns (N)
-void rotate(int dim, pixel *src, pixel *dst) 
+void rotate(int dim, pixel *src, pixel *dst)
 {
     register int i, j; // register keyword: save variable in register instead of memory
     register int dim_minus_1 = dim - 1;
@@ -119,7 +119,6 @@ void register_rotate_functions()
 // Your different versions of the rotate_t kernel go here
 // (i.e. rotate with multi-threading)
 
-
 /*
  * rotate_t - Your current working version of rotate_t
  * IMPORTANT: This is the version you will be graded on
@@ -134,9 +133,6 @@ typedef struct
     int start_row;
     int end_row;
 } thread_args;
-
-// RIDX(i,j,n) ((i)*(n)+(j))
-// dst[RIDX(dim-1-j,i,dim)] = src[RIDX(i,j,dim)];
 
 // Worker thread function
 void *rotate_thread(void *arg)
@@ -153,48 +149,40 @@ void *rotate_thread(void *arg)
     register int dim_minus_1 = dim - 1;
 
     // Same code as in rotate
-    for (j = 0; j < dim; j += 4)
+    for (i = start_row; i < end_row; i += 4)
     { // Unrolling by 4
-        for (i = start_row; i < end_row; i += 4)
+
+        for (j = 0; j < dim; j += 4)
         // Unrolling by 4
         {
             // Inlining RIDX macro because this can give overhead
 
-            // Precompute frequently used indices
+            // Precompute indices
             int dim_minus_1_minus_j = dim_minus_1 - j;
-            int dim_minus_1_minus_j_minus_1 = dim_minus_1_minus_j - 1;
-            int dim_minus_1_minus_j_minus_2 = dim_minus_1_minus_j - 2;
-            int dim_minus_1_minus_j_minus_3 = dim_minus_1_minus_j - 3;
-            int i_plus_1 = i + 1;
-            int i_plus_2 = i + 2;
-            int i_plus_3 = i + 3;
-            int j_plus_1 = j + 1;
-            int j_plus_2 = j + 2;
-            int j_plus_3 = j + 3;
 
-            // First column
-            dst[dim_minus_1_minus_j * dim + i] = src[i * dim + j];
-            dst[dim_minus_1_minus_j * dim + i_plus_1] = src[i_plus_1 * dim + j];
-            dst[dim_minus_1_minus_j * dim + i_plus_2] = src[i_plus_2 * dim + j];
-            dst[dim_minus_1_minus_j * dim + i_plus_3] = src[i_plus_3 * dim + j];
+            // First row
+            dst[(dim_minus_1_minus_j)*dim + i] = src[i * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i] = src[i * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i] = src[i * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i] = src[i * dim + j + 3];
 
-            // Second column
-            dst[dim_minus_1_minus_j_minus_1 * dim + i] = src[i * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_1];
+            // Second row
+            dst[(dim_minus_1_minus_j)*dim + i + 1] = src[(i + 1) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 1] = src[(i + 1) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 1] = src[(i + 1) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 1] = src[(i + 1) * dim + j + 3];
 
-            // Third column
-            dst[dim_minus_1_minus_j_minus_2 * dim + i] = src[i * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_2];
+            // Third row
+            dst[(dim_minus_1_minus_j)*dim + i + 2] = src[(i + 2) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 2] = src[(i + 2) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 2] = src[(i + 2) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 2] = src[(i + 2) * dim + j + 3];
 
-            // Fourth column
-            dst[dim_minus_1_minus_j_minus_3 * dim + i] = src[i * dim + j_plus_3];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_3];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_3];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_3];
+            // Fourth row
+            dst[(dim_minus_1_minus_j)*dim + i + 3] = src[(i + 3) * dim + j];
+            dst[(dim_minus_1_minus_j - 1) * dim + i + 3] = src[(i + 3) * dim + j + 1];
+            dst[(dim_minus_1_minus_j - 2) * dim + i + 3] = src[(i + 3) * dim + j + 2];
+            dst[(dim_minus_1_minus_j - 3) * dim + i + 3] = src[(i + 3) * dim + j + 3];
         }
     }
     return NULL; // return value is not used
@@ -210,10 +198,10 @@ void rotate_t(int dim, pixel *src, pixel *dst)
     if (dim < 512)
     {
         rotate(dim, src, dst); // Call rotate instead
-        return; 
+        return;
     }
 
-    pthread_t threads[4]; // 4 threads because 4 cores
+    pthread_t threads[4];       // 4 threads because 4 cores
     thread_args thread_data[4]; // Thread arguments
 
     int rows_per_thread = dim / 4; // Divide rows in 4 parts
@@ -267,13 +255,13 @@ void naive_blend(int dim, pixel *src, pixel *dst) // reads global variable `pixe
 }
 
 char blend_descr[] = "blend: Current working version"; // IMPORTANT: The version you will be graded on
-void blend(int dim, pixel *src, pixel *dst) 
+void blend(int dim, pixel *src, pixel *dst)
 {
     register int i; // Tell compiler to save variable in register
 
     // Move code from blend_pixel into this function to avoid function call overhead
-    // Only use one loop instead of two because the picture is represented as a 1D array. 
-        // Each pixel can be processed independently of the others so we can use only one loop
+    // Only use one loop instead of two because the picture is represented as a 1D array.
+    // Each pixel can be processed independently of the others so we can use only one loop
     // Use loop unrolling to handle four pixels at a time
     for (i = 0; i < dim * dim; i += 4)
     {
@@ -601,166 +589,164 @@ void blend_v(int dim, pixel *src, pixel *dst)
     }
 }
 
-        /*
-         * register_blend_v_functions - Register all of your different versions
-         *     of the blend_v kernel with the driver by calling the
-         *     add_blend_function() for each test function.
-         */
-        void register_blend_v_functions()
-        {
-            add_blend_v_function(&blend_v, blend_v_descr);
-            
+/*
+ * register_blend_v_functions - Register all of your different versions
+ *     of the blend_v kernel with the driver by calling the
+ *     add_blend_function() for each test function.
+ */
+void register_blend_v_functions()
+{
+    add_blend_v_function(&blend_v, blend_v_descr);
 
-            /* ... Register additional test functions here */
-        }
+    /* ... Register additional test functions here */
+}
 
-        /******************************************************************************
-         * SMOOTH KERNEL
-         *****************************************************************************/
+/******************************************************************************
+ * SMOOTH KERNEL
+ *****************************************************************************/
 
-        // Your different versions of the smooth kernel go here
+// Your different versions of the smooth kernel go here
 
-        /*
-         * naive_smooth - The naive baseline version of smooth
-         */
-        char naive_smooth_descr[] = "naive_smooth: Naive baseline implementation";
-        void naive_smooth(int dim, pixel *src, pixel *dst)
-        {
-            int i, j;
+/*
+ * naive_smooth - The naive baseline version of smooth
+ */
+char naive_smooth_descr[] = "naive_smooth: Naive baseline implementation";
+void naive_smooth(int dim, pixel *src, pixel *dst)
+{
+    int i, j;
 
-            for (i = 0; i < dim; i++)
-                for (j = 0; j < dim; j++)
-                    dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
-        }
+    for (i = 0; i < dim; i++)
+        for (j = 0; j < dim; j++)
+            dst[RIDX(i, j, dim)] = avg(dim, i, j, src); // `avg` defined in smooth.c
+}
 
-        char smooth_descr[] = "smooth: Current working version - Inlining";
-        void smooth(int dim, pixel *src, pixel *dst)
-        {
-            register int i, j;
+char smooth_descr[] = "smooth: Current working version - Inlining";
+void smooth(int dim, pixel *src, pixel *dst)
+{
+    register int i, j;
 
-            for (i = 0; i < dim; i++)
-            {
-                for (j = 0; j < dim; j++)
-                {
-                    register int ii, jj;
-                    pixel_sum sum;
-                    pixel current_pixel;
-
-                    // Inline initialize_pixel_sum
-                    sum.red = sum.green = sum.blue = sum.alpha = 0;
-                    sum.num = 0;
-
-                    // Inline min and max and cache the values used for loops below
-                    int max_i = i - 1 > 0 ? i - 1 : 0;
-                    int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
-                    int max_j = j - 1 > 0 ? j - 1 : 0;
-                    int min_j = j + 1 < dim - 1 ? j + 1 : dim - 1;
-
-                    for (ii = max_i; ii <= min_i; ii++)
-                    {
-                        for (jj = max_j; jj <= min_j; jj++)
-                        {
-                            // Inline accumulate_sum
-                            pixel x = src[ii * dim + jj];
-                            sum.red += (int)x.red;
-                            sum.green += (int)x.green;
-                            sum.blue += (int)x.blue;
-                            sum.alpha += (int)x.alpha;
-                            sum.num++;
-                        }
-                    }
-
-                    // Inline assign_sum_to_pixel
-                    current_pixel.red = (unsigned short)(sum.red / sum.num);
-                    current_pixel.green = (unsigned short)(sum.green / sum.num);
-                    current_pixel.blue = (unsigned short)(sum.blue / sum.num);
-                    current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
-
-                    dst[i * dim + j] = current_pixel;
-                }
-            }
-        }
-
-
-        pixel avgWorker(int dim, int i, int j, pixel *src)
+    for (i = 0; i < dim; i++)
+    {
+        for (j = 0; j < dim; j++)
         {
             register int ii, jj;
             pixel_sum sum;
             pixel current_pixel;
 
-            initialize_pixel_sum(&sum);
-            
+            // Inline initialize_pixel_sum
+            sum.red = sum.green = sum.blue = sum.alpha = 0;
+            sum.num = 0;
+
             // Inline min and max and cache the values used for loops below
-            int max_i = i-1 > 0 ? i-1 : 0;
-            int min_i = i+1 < dim-1 ? i+1 : dim-1;
-            int max_j = j-1 > 0 ? j-1 : 0;
-            int min_j = j+1 < dim-1 ? j+1 : dim-1;
+            int max_i = i - 1 > 0 ? i - 1 : 0;
+            int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
+            int max_j = j - 1 > 0 ? j - 1 : 0;
+            int min_j = j + 1 < dim - 1 ? j + 1 : dim - 1;
 
             for (ii = max_i; ii <= min_i; ii++)
             {
                 for (jj = max_j; jj <= min_j; jj++)
                 {
-                    accumulate_sum(&sum, src[ii * dim + jj]);
+                    // Inline accumulate_sum
+                    pixel x = src[ii * dim + jj];
+                    sum.red += (int)x.red;
+                    sum.green += (int)x.green;
+                    sum.blue += (int)x.blue;
+                    sum.alpha += (int)x.alpha;
+                    sum.num++;
                 }
             }
 
-            assign_sum_to_pixel(&current_pixel, sum);
-            return current_pixel;
-        }
+            // Inline assign_sum_to_pixel
+            current_pixel.red = (unsigned short)(sum.red / sum.num);
+            current_pixel.green = (unsigned short)(sum.green / sum.num);
+            current_pixel.blue = (unsigned short)(sum.blue / sum.num);
+            current_pixel.alpha = (unsigned short)(sum.alpha / sum.num);
 
-        void *smoothUnrollingThread(void *arguments)
+            dst[i * dim + j] = current_pixel;
+        }
+    }
+}
+
+pixel avgWorker(int dim, int i, int j, pixel *src)
+{
+    register int ii, jj;
+    pixel_sum sum;
+    pixel current_pixel;
+
+    initialize_pixel_sum(&sum);
+
+    // Inline min and max and cache the values used for loops below
+    int max_i = i - 1 > 0 ? i - 1 : 0;
+    int min_i = i + 1 < dim - 1 ? i + 1 : dim - 1;
+    int max_j = j - 1 > 0 ? j - 1 : 0;
+    int min_j = j + 1 < dim - 1 ? j + 1 : dim - 1;
+
+    for (ii = max_i; ii <= min_i; ii++)
+    {
+        for (jj = max_j; jj <= min_j; jj++)
         {
-            thread_args *args = (thread_args *)arguments;
-            int dim = args->dim;
-
-            for (int i = args->start_row; i < args->end_row; i += 2)
-            {
-                for (int j = 0; j < dim; j += 2)
-                {
-                    args->dst[i * dim + j] = avgWorker(dim, i, j, args->src);
-                    args->dst[i * dim + (j + 1)] = avgWorker(dim, i, j + 1, args->src);
-                    args->dst[(i + 1) * dim + j] = avgWorker(dim, i + 1, j, args->src);
-                    args->dst[(i + 1) * dim + (j + 1)] = avgWorker(dim, i + 1, j + 1, args->src);
-                }
-            }
-
-            pthread_exit(NULL );
+            accumulate_sum(&sum, src[ii * dim + jj]);
         }
+    }
 
-        char smoothThreads_descr[] = "Smooth with threads";
-        void smoothThreads(int dim, pixel *src, pixel *dst)
+    assign_sum_to_pixel(&current_pixel, sum);
+    return current_pixel;
+}
+
+void *smoothUnrollingThread(void *arguments)
+{
+    thread_args *args = (thread_args *)arguments;
+    int dim = args->dim;
+
+    for (int i = args->start_row; i < args->end_row; i += 2)
+    {
+        for (int j = 0; j < dim; j += 2)
         {
-            pthread_t threads[4]; // 4 threads because we have 4 cores
-            thread_args thread_data[4]; // List of thread arguments
-
-            int rows_per_thread = dim / 4; // Divide rows in 4 parts
-
-            for (int t = 0; t < 4; ++t)
-            {
-                // create thread arguments
-                thread_data[t].dim = dim;
-                thread_data[t].src = src;
-                thread_data[t].dst = dst;
-                thread_data[t].start_row = t * rows_per_thread;
-                thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
-
-                pthread_create(&threads[t], NULL, smoothUnrollingThread, (void *)&thread_data[t]);
-            }
-
-            for (int i = 0; i < 4; ++i)
-            {
-                pthread_join(threads[i], NULL);
-            }
+            args->dst[i * dim + j] = avgWorker(dim, i, j, args->src);
+            args->dst[i * dim + (j + 1)] = avgWorker(dim, i, j + 1, args->src);
+            args->dst[(i + 1) * dim + j] = avgWorker(dim, i + 1, j, args->src);
+            args->dst[(i + 1) * dim + (j + 1)] = avgWorker(dim, i + 1, j + 1, args->src);
         }
+    }
 
-        /*
-         * register_smooth_functions - Register all of your different versions
-         *     of the smooth kernel with the driver by calling the
-         *     add_smooth_function() for each test function.
-         */
+    pthread_exit(NULL);
+}
 
-        void register_smooth_functions()
-        {
-            add_smooth_function(&smooth, smooth_descr);
-            /* ... Register additional test functions here */
-        }
+char smoothThreads_descr[] = "Smooth with threads";
+void smoothThreads(int dim, pixel *src, pixel *dst)
+{
+    pthread_t threads[4];       // 4 threads because we have 4 cores
+    thread_args thread_data[4]; // List of thread arguments
+
+    int rows_per_thread = dim / 4; // Divide rows in 4 parts
+
+    for (int t = 0; t < 4; ++t)
+    {
+        // create thread arguments
+        thread_data[t].dim = dim;
+        thread_data[t].src = src;
+        thread_data[t].dst = dst;
+        thread_data[t].start_row = t * rows_per_thread;
+        thread_data[t].end_row = (t == 3) ? dim : (t + 1) * rows_per_thread; // Last thread should handle the rest of the rows
+
+        pthread_create(&threads[t], NULL, smoothUnrollingThread, (void *)&thread_data[t]);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        pthread_join(threads[i], NULL);
+    }
+}
+
+/*
+ * register_smooth_functions - Register all of your different versions
+ *     of the smooth kernel with the driver by calling the
+ *     add_smooth_function() for each test function.
+ */
+
+void register_smooth_functions()
+{
+    add_smooth_function(&smooth, smooth_descr);
+    /* ... Register additional test functions here */
+}
