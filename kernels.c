@@ -604,7 +604,7 @@ typedef struct
 // Worker thread function
 void *blend_thread(void *arg)
 {
-    thread_args *args = (thread_args *)arg;
+    blend_thread_args *args = (blend_thread_args *)arg;
 
     int dim = args->dim;
     pixel *src = args->src;
@@ -623,7 +623,6 @@ void *blend_thread(void *arg)
 
     // Loop unrolling of 16 pixels
     // Only use one loop instead of two because the picture is represented as a 1D array.
-    // Each pixel can be processed independently of the others so we can use only one loop
     for (register int i = (start_row * dim); i < (end_row * dim); i += 16) // Load 16 pixels at a time
     {
         /**************************** FIRST 4 PIXELS (0-4) *****************************/
@@ -852,7 +851,7 @@ void *blend_thread(void *arg)
         printf("\n");
         */
     }
-    return; 
+    return NULL; 
 }
 
 // Main function
@@ -860,19 +859,17 @@ void *blend_thread(void *arg)
 char blend_v_t_descr[] = "blend_v: Multithreaded version";
 void blend_v_t(int dim, pixel *src, pixel *dst)
 {
-    // This method is only good for large input
-    // Check if input is small enough that it is better to call rotate
-    
+    // Check if input is small enough that it is better to call blend_v
     if (dim < 256)
     {
         blend_v(dim, src, dst); // Call rotate instead
         return;
     }
 
-    pthread_t threads[4];       // 4 threads because 4 cores
+    pthread_t threads[4];             // 4 threads because 4 cores
     blend_thread_args thread_data[4]; // Thread arguments
 
-    int rows_per_thread = dim / 4; // Divide rows in 4 parts
+    int rows_per_thread = dim / 4;    // Divide rows in 4 parts
 
     for (int t = 0; t < 4; t++)
     {
