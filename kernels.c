@@ -852,6 +852,7 @@ void *blend_thread(void *arg)
         printf("\n");
         */
     }
+    return; 
 }
 
 // Main function
@@ -864,7 +865,7 @@ void blend_v_t(int dim, pixel *src, pixel *dst)
     
     if (dim < 256)
     {
-        rotate(dim, src, dst); // Call rotate instead
+        blend_v(dim, src, dst); // Call rotate instead
         return;
     }
 
