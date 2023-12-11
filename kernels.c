@@ -861,13 +861,12 @@ void blend_v_t(int dim, pixel *src, pixel *dst)
 {
     // This method is only good for large input
     // Check if input is small enough that it is better to call rotate
-    /*
-    if (dim < 512)
+    
+    if (dim < 256)
     {
         rotate(dim, src, dst); // Call rotate instead
         return;
     }
-    */
 
     pthread_t threads[4];       // 4 threads because 4 cores
     blend_thread_args thread_data[4]; // Thread arguments
