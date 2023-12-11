@@ -175,7 +175,7 @@ void *rotate_thread(void *arg)
             dst[dim_minus_1_minus_j * dim + i_plus_1] = src[i_plus_1 * dim + j];           // dst[RIDX(dim - 1 - j, i + 1, dim)] = src[RIDX(i + 1, j, dim)]
             dst[(dim_minus_1_minus_j - 1) * dim + i_plus_1] = src[i_plus_1 * dim + j + 1]; // dst[RIDX(dim - 1 - j - 1, i + 1, dim)] = src[RIDX(i + 1, j + 1, dim)]
             dst[(dim_minus_1_minus_j - 2) * dim + i_plus_1] = src[i_plus_1 * dim + j + 2]; // dst[RIDX(dim - 1 - j - 2, i + 1, dim)] = src[RIDX(i + 1, j + 2, dim)]
-            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_1 = src[i_plus_1 * dim + j + 3];  // dst[RIDX(dim - 1 - j - 3, i + 1, dim)] = src[RIDX(i + 1, j + 3, dim)]
+            dst[(dim_minus_1_minus_j - 3) * dim + i_plus_1] = src[i_plus_1 * dim + j + 3];  // dst[RIDX(dim - 1 - j - 3, i + 1, dim)] = src[RIDX(i + 1, j + 3, dim)]
 
             // src: Row 3, column 1-4. Good spatial locality
             // dst: Column 3, row 4-1. Bad spatial locality
