@@ -153,9 +153,10 @@ void *rotate_thread(void *arg)
     register int dim_minus_1 = dim - 1;
 
     // Same code as in rotate
-    for (j = 0; j < dim; j += 4)
+    for (i = start_row; i < end_row; i += 4)
     { // Unrolling by 4
-        for (i = start_row; i < end_row; i += 4)
+
+        for (j = 0; j < dim; j += 4)
         // Unrolling by 4
         {
             // Inlining RIDX macro because this can give overhead
@@ -172,28 +173,28 @@ void *rotate_thread(void *arg)
             int j_plus_2 = j + 2;
             int j_plus_3 = j + 3;
 
-            // First row
+            // First column
             dst[dim_minus_1_minus_j * dim + i] = src[i * dim + j];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i] = src[i * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i] = src[i * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i] = src[i * dim + j_plus_3];
-
-            // Second row
             dst[dim_minus_1_minus_j * dim + i_plus_1] = src[i_plus_1 * dim + j];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_3];
-
-            // Third row
             dst[dim_minus_1_minus_j * dim + i_plus_2] = src[i_plus_2 * dim + j];
-            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_1];
-            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_2];
-            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_3];
-
-            // Fourth row
             dst[dim_minus_1_minus_j * dim + i_plus_3] = src[i_plus_3 * dim + j];
+
+            // Second column
+            dst[dim_minus_1_minus_j_minus_1 * dim + i] = src[i * dim + j_plus_1];
+            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_1];
+            dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_1];
             dst[dim_minus_1_minus_j_minus_1 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_1];
+
+            // Third column
+            dst[dim_minus_1_minus_j_minus_2 * dim + i] = src[i * dim + j_plus_2];
+            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_2];
+            dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_2];
             dst[dim_minus_1_minus_j_minus_2 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_2];
+
+            // Fourth column
+            dst[dim_minus_1_minus_j_minus_3 * dim + i] = src[i * dim + j_plus_3];
+            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_1] = src[i_plus_1 * dim + j_plus_3];
+            dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_2] = src[i_plus_2 * dim + j_plus_3];
             dst[dim_minus_1_minus_j_minus_3 * dim + i_plus_3] = src[i_plus_3 * dim + j_plus_3];
         }
     }
