@@ -592,6 +592,12 @@ void blend_v(int dim, pixel *src, pixel *dst)
     }
 }
 
+
+
+
+
+/**************************** MULTITHREADED VERSION ****************************/
+
 typedef struct
 {
     int dim;
